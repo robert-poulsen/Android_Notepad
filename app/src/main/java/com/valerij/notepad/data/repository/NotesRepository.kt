@@ -13,6 +13,10 @@ class NotesRepository(
         dao.insert(note)
     }
 
+    suspend fun deleteNote(note: NoteEntity){
+        dao.delete(note)
+    }
+
     suspend fun getById(id: String): NoteEntity? {
         return dao.getNoteById(id)
     }
