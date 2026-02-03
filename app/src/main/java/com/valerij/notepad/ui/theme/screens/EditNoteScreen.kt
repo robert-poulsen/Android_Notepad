@@ -3,6 +3,7 @@ package com.valerij.notepad.ui.theme.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -10,13 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
-import java.util.UUID
-
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
-
-
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,11 +29,10 @@ fun EditNoteScreen(
     var content by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
 
-    // 🔥 ЗАВАНТАЖЕННЯ НОТАТКИ З ROOM
+    // 🔹 Завантаження нотатки
     LaunchedEffect(noteId) {
         if (noteId != null) {
-            val note = viewModel.getNote(noteId)
-            if (note != null) {
+            viewModel.getNote(noteId)?.let { note ->
                 title = note.title
                 content = note.content
             }
@@ -58,19 +55,26 @@ fun EditNoteScreen(
             TopAppBar(
                 title = { Text("Нотатка") },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
                 actions = {
                     IconButton(onClick = {
                         scope.launch {
+                            val finalTitle =
+                                if (title.isBlank()) {
+                                    content
+                                        .lineSequence()
+                                        .firstOrNull()
+                                        ?.take(30)
+                                        ?: "Без назви"
+                                } else title
+
                             viewModel.saveNote(
                                 NoteEntity(
                                     id = noteId ?: UUID.randomUUID().toString(),
-                                    title = title,
+                                    title = finalTitle,
                                     content = content
                                 )
                             )
@@ -78,6 +82,19 @@ fun EditNoteScreen(
                         }
                     }) {
                         Icon(Icons.Default.Save, contentDescription = null)
+                    }
+
+                    if (noteId != null) {
+                        IconButton(onClick = {
+                            scope.launch {
+                                viewModel.getNote(noteId)?.let {
+                                    viewModel.deleteNote(it)
+                                }
+                                navController.popBackStack()
+                            }
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = null)
+                        }
                     }
                 }
             )
@@ -95,7 +112,8 @@ fun EditNoteScreen(
                 value = title,
                 onValueChange = { title = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Заголовок") }
+                placeholder = { Text("Заголовок") },
+                singleLine = true
             )
 
             Spacer(modifier = Modifier.height(12.dp))

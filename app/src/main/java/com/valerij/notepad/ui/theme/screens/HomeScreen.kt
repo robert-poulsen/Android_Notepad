@@ -1,11 +1,9 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -16,7 +14,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
 
-import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
 
@@ -27,6 +24,7 @@ fun HomeScreen(
     viewModel: NotesViewModel
 ) {
     val notes by viewModel.notes.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -45,10 +43,10 @@ fun HomeScreen(
         ) {
 
             OutlinedTextField(
-                value = "",
+                value = searchQuery,
                 onValueChange = viewModel::updateSearch,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Пошук за назвою") },
+                placeholder = { Text(text = "Пошук за назвою") },
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null)
                 }

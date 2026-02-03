@@ -38,6 +38,10 @@ class NotesViewModel(
         }
     }
 
+    suspend fun deleteNote(note: NoteEntity){
+        repository.deleteNote(note)
+    }
+
     suspend fun getNote(id: String): NoteEntity? {
         return repository.getById(id)
     }
