@@ -1,40 +1,44 @@
 package com.valerij.notepad.ui.theme
 
-import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
-import com.valerij.notepad.data.Note
+import androidx.lifecycle.viewModelScope
+import com.valerij.notepad.data.local.NoteEntity
+import com.valerij.notepad.data.repository.NotesRepository
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
-class NotesViewModel : ViewModel() {
+class NotesViewModel(
+    private val repository: NotesRepository
+) : ViewModel() {
 
-    private val _notes = mutableStateListOf<Note>()
-    val notes: List<Note> = _notes
+    val searchQuery = MutableStateFlow("")
 
-    var searchQuery by mutableStateOf("")
-        private set
+    val notes: StateFlow<List<NoteEntity>> =
+        searchQuery.flatMapLatest { query ->
+            repository.getAllNotes().map { list ->
+                if (query.isBlank()) list
+                else list.filter {
+                    it.title.contains(query, ignoreCase = true)
+                }
+            }
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
 
     fun updateSearch(query: String) {
-        searchQuery = query
+        searchQuery.value = query
     }
 
-    fun filteredNotes(): List<Note> {
-        if (searchQuery.isBlank()) return notes
-        return notes.filter {
-            it.title.contains(searchQuery, ignoreCase = true)
+    fun saveNote(note: NoteEntity) {
+        viewModelScope.launch {
+            repository.addOrUpdate(note)
         }
     }
 
-    fun addNote(note: Note) {
-        _notes.add(note)
-    }
-
-    fun updateNote(updated: Note) {
-        val index = _notes.indexOfFirst { it.id == updated.id }
-        if (index != -1) {
-            _notes[index] = updated
-        }
-    }
-
-    fun getNoteById(id: String): Note? {
-        return _notes.find { it.id == id }
+    suspend fun getNote(id: String): NoteEntity? {
+        return repository.getById(id)
     }
 }
