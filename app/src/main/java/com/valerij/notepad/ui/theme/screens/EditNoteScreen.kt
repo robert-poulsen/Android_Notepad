@@ -6,10 +6,14 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.valerij.notepad.data.Note
+import kotlinx.coroutines.launch
+import java.util.UUID
+
+import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
 
 
@@ -21,32 +25,59 @@ fun EditNoteScreen(
     viewModel: NotesViewModel,
     noteId: String?
 ) {
-    val existingNote = noteId?.let { viewModel.getNoteById(it) }
+    val scope = rememberCoroutineScope()
 
-    var title by remember { mutableStateOf(existingNote?.title ?: "") }
-    var content by remember { mutableStateOf(existingNote?.content ?: "") }
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var loaded by remember { mutableStateOf(false) }
+
+    // 🔥 ЗАВАНТАЖЕННЯ НОТАТКИ З ROOM
+    LaunchedEffect(noteId) {
+        if (noteId != null) {
+            val note = viewModel.getNote(noteId)
+            if (note != null) {
+                title = note.title
+                content = note.content
+            }
+        }
+        loaded = true
+    }
+
+    if (!loaded) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Назва нотатки") },
+                title = { Text("Нотатка") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, null)
+                    IconButton(onClick = {
+                        navController.popBackStack()
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
                 actions = {
                     IconButton(onClick = {
-                        if (existingNote == null) {
-                            viewModel.addNote(Note(title = title, content = content))
-                        } else {
-                            viewModel.updateNote(
-                                existingNote.copy(title = title, content = content)
+                        scope.launch {
+                            viewModel.saveNote(
+                                NoteEntity(
+                                    id = noteId ?: UUID.randomUUID().toString(),
+                                    title = title,
+                                    content = content
+                                )
                             )
+                            navController.popBackStack()
                         }
-                        navController.popBackStack()
                     }) {
-                        Icon(Icons.Default.Save, null)
+                        Icon(Icons.Default.Save, contentDescription = null)
                     }
                 }
             )

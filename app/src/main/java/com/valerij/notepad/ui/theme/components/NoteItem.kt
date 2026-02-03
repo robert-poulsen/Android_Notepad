@@ -6,11 +6,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.valerij.notepad.data.Note
+import com.valerij.notepad.data.local.NoteEntity
 
 @Composable
 fun NoteItem(
-    note: Note,
+    note: NoteEntity,
     onClick: () -> Unit
 ) {
     Card(
