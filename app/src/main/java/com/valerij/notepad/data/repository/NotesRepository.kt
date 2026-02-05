@@ -1,9 +1,7 @@
 package com.valerij.notepad.data.repository
 
-import androidx.room.util.query
 import com.valerij.notepad.data.local.NoteDao
 import com.valerij.notepad.data.local.NoteEntity
-import kotlinx.coroutines.flow.Flow
 
 class NotesRepository(
     private val dao: NoteDao

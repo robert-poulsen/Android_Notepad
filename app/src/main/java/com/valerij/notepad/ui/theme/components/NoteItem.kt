@@ -19,16 +19,16 @@ fun NoteItem(
     Row(){
         IconButton(
             modifier = Modifier
-                .padding(top = 40.dp),
-            onClick = {onPinClick}
+                .padding(top = 30.dp),
+            onClick = {onPinClick()}
         ){
             Icon(
                 Icons.Default.PushPin,
                 contentDescription = null,
-//                tint = if (note.pinned)
-//                    MaterialTheme.colorScheme.primary
-//                else
-//                    MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (note.pinned)
+                    MaterialTheme.colorScheme.inversePrimary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Card(

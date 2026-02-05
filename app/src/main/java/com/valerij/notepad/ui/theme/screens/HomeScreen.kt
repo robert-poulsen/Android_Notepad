@@ -1,6 +1,5 @@
 package com.valerij.notepad.ui.theme.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -10,12 +9,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.ui.graphics.Color
 
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
