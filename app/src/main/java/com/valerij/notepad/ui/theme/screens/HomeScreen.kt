@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,9 +61,15 @@ fun HomeScreen(
 
             LazyColumn {
                 items(notes) { note ->
-                    NoteItem(note) {
-                        navController.navigate("edit?noteId=${note.id}")
-                    }
+                    NoteItem(
+                        note = note,
+                        onClick = {
+                            navController.navigate("edit?noteId=${note.id}")
+                        },
+                        onPinClick = {
+                            viewModel.togglePin(note)
+                        }
+                    )
                 }
             }
         }

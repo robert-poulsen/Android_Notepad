@@ -11,25 +11,27 @@ class NotesViewModel(
     private val repository: NotesRepository
 ) : ViewModel() {
 
-    val searchQuery = MutableStateFlow("")
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
 
-    val notes: StateFlow<List<NoteEntity>> =
-        searchQuery.flatMapLatest { query ->
-            repository.getAllNotes().map { list ->
-                if (query.isBlank()) list
-                else list.filter {
-                    it.title.contains(query, ignoreCase = true)
-                }
-            }
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            emptyList()
-        )
-
+    val notes = searchQuery.flatMapLatest {
+        repository.getAllNotes(it)
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    )
 
     fun updateSearch(query: String) {
-        searchQuery.value = query
+        _searchQuery.value = query
+    }
+
+    fun togglePin(note: NoteEntity) {
+        viewModelScope.launch {
+            repository.addOrUpdate(
+                note.copy(pinned = !note.pinned)
+            )
+        }
     }
 
     fun saveNote(note: NoteEntity) {
