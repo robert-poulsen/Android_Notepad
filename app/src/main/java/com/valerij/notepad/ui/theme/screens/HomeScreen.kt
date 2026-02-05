@@ -1,6 +1,5 @@
 package com.valerij.notepad.ui.theme.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -14,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.ui.graphics.Color
 
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
@@ -60,9 +58,15 @@ fun HomeScreen(
 
             LazyColumn {
                 items(notes) { note ->
-                    NoteItem(note) {
-                        navController.navigate("edit?noteId=${note.id}")
-                    }
+                    NoteItem(
+                        note = note,
+                        onClick = {
+                            navController.navigate("edit?noteId=${note.id}")
+                        },
+                        onPinClick = {
+                            viewModel.togglePin(note)
+                        }
+                    )
                 }
             }
         }
