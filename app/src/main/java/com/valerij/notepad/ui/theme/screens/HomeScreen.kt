@@ -1,5 +1,6 @@
 package com.valerij.notepad.ui.theme.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -13,9 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.graphics.Color
 
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
+import com.valerij.notepad.ui.theme.Typography
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,10 +49,11 @@ fun HomeScreen(
                 value = searchQuery,
                 onValueChange = viewModel::updateSearch,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(text = "Пошук за назвою") },
+                placeholder = { Text(text = "Search by name") },
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null)
-                }
+                },
+                textStyle = Typography.bodyLarge,
             )
 
             Spacer(modifier = Modifier.height(16.dp))

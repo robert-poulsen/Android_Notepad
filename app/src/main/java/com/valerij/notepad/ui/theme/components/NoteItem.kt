@@ -24,16 +24,17 @@ fun NoteItem(
                 Text(
                     note.content,
                     maxLines = 1,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.bodyMedium,
+
                 )
             } else {
-                Text(note.title, style = MaterialTheme.typography.titleMedium)
+                Text(note.title, style = MaterialTheme.typography.bodyMedium)
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 note.content,
                 maxLines = 2,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
