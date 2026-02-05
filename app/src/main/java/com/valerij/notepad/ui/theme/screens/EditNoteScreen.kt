@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
+import com.valerij.notepad.ui.theme.Typography
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -29,7 +30,6 @@ fun EditNoteScreen(
     var content by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
 
-    // 🔹 Завантаження нотатки
     LaunchedEffect(noteId) {
         if (noteId != null) {
             viewModel.getNote(noteId)?.let { note ->
@@ -53,7 +53,14 @@ fun EditNoteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Нотатка") },
+                title = { TextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Title") },
+                    singleLine = true,
+                    textStyle = Typography.bodyLarge,
+                )},
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
@@ -104,25 +111,15 @@ fun EditNoteScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
+                .padding(vertical = 10.dp)
                 .fillMaxSize()
         ) {
-
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Заголовок") },
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
+            TextField(
                 value = content,
                 onValueChange = { content = it },
                 modifier = Modifier.fillMaxSize(),
-                placeholder = { Text("Текст нотатки") }
+                placeholder = { Text("Text here") },
+                textStyle = Typography.bodySmall,
             )
         }
     }
