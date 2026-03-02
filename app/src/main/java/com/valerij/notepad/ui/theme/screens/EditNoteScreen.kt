@@ -29,12 +29,15 @@ fun EditNoteScreen(
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
+    var pinnedNote by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(noteId) {
         if (noteId != null) {
             viewModel.getNote(noteId)?.let { note ->
                 title = note.title
                 content = note.content
+                pinnedNote = note.pinned
             }
         }
         loaded = true
@@ -82,7 +85,8 @@ fun EditNoteScreen(
                                 NoteEntity(
                                     id = noteId ?: UUID.randomUUID().toString(),
                                     title = finalTitle,
-                                    content = content
+                                    content = content,
+                                    pinned = pinnedNote
                                 )
                             )
                             navController.popBackStack()
@@ -93,15 +97,50 @@ fun EditNoteScreen(
 
                     if (noteId != null) {
                         IconButton(onClick = {
-                            scope.launch {
-                                viewModel.getNote(noteId)?.let {
-                                    viewModel.deleteNote(it)
-                                }
-                                navController.popBackStack()
-                            }
+                            showDeleteDialog = true
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = null)
                         }
+                    }
+
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = {
+                                showDeleteDialog = false
+                            },
+                            title = { Text(
+                                text = "Delete note?",
+                                style = Typography.bodyLarge
+                            )},
+                            text = { Text(
+                                text = "Are you sure you want to delete this note?",
+                                style = Typography.bodyMedium
+                            )},
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        scope.launch {
+                                            viewModel.getNote(noteId!!)?.let {
+                                                viewModel.deleteNote(it)
+                                            }
+                                            showDeleteDialog = false
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                ) {
+                                    Text("Yes")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = {
+                                        showDeleteDialog = false
+                                    }
+                                ) {
+                                    Text("No")
+                                }
+                            }
+                        )
                     }
                 }
             )
