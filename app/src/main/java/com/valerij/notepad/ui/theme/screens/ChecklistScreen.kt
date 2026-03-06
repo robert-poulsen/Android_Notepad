@@ -1,6 +1,8 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
@@ -11,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
@@ -18,6 +22,11 @@ import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+data class ChecklistItem(
+    var text: String,
+    var checked: Boolean
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,9 +38,8 @@ fun ChecklistScreen(
     val scope = rememberCoroutineScope()
 
     var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
+    var items by remember { mutableStateOf(mutableStateListOf<ChecklistItem>()) }
     var loaded by remember { mutableStateOf(false) }
-    var checklist by remember { mutableStateOf(true) }
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -39,11 +47,27 @@ fun ChecklistScreen(
         if (noteId != null) {
             viewModel.getNote(noteId)?.let { note ->
                 title = note.title
-                content = note.content
-                checklist = note.checklist
                 pinnedNote = note.pinned
+
+                val lines = note.content.split("\n")
+
+                items.clear()
+                lines.forEach {
+                    when {
+                        it.startsWith("[x] ") ->
+                            items.add(ChecklistItem(it.removePrefix("[x] "), true))
+
+                        it.startsWith("[ ] ") ->
+                            items.add(ChecklistItem(it.removePrefix("[ ] "), false))
+                    }
+                }
             }
         }
+
+        if (items.isEmpty()) {
+            items.add(ChecklistItem("", false))
+        }
+
         loaded = true
     }
 
@@ -66,7 +90,7 @@ fun ChecklistScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Title") },
                     singleLine = true,
-                    //  textStyle = Typography.bodyLarge,
+                    textStyle = Typography.bodyLarge,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
@@ -81,30 +105,30 @@ fun ChecklistScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        if(!content.endsWith("\n") && content.isNotBlank()) {
-                            content += "\n"
-                        }
-                        content += "[ ] "
+                        items.add(ChecklistItem("", false))
                     }) {
                         Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
                     }
                     IconButton(onClick = {
                         scope.launch {
+
                             val finalTitle =
                                 if (title.isBlank()) {
-                                    content
-                                        .lineSequence()
-                                        .firstOrNull()
-                                        ?.take(30)
-                                        ?: "No Name"
+                                    items.firstOrNull()?.text?.take(30)
+                                        ?: "No name"
                                 } else title
+
+                            val content = items.joinToString("\n"){
+                                if (it.checked) "[x] ${it.text}"
+                                else "[ ] ${it.text}"
+                            }
 
                             viewModel.saveNote(
                                 NoteEntity(
                                     id = noteId ?: UUID.randomUUID().toString(),
                                     title = finalTitle,
                                     content = content,
-                                    checklist = checklist,
+                                    checklist = true,
                                     pinned = pinnedNote,
                                 )
                             )
@@ -166,48 +190,52 @@ fun ChecklistScreen(
         }
     ) { padding ->
 
-        val lines = content.split("\n")
-
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(vertical = 10.dp)
+                .padding(16.dp)
                 .fillMaxSize()
         ) {
-            lines.forEachIndexed { index, line ->
 
-                val isChecked = line.startsWith("[x] ")
-                val text = line.removePrefix("[ ] ")
-                    .removePrefix("[x] ")
+            items.forEachIndexed { index, item ->
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     Checkbox(
-                        checked = isChecked,
+                        checked = item.checked,
                         onCheckedChange = {
-                            val updatedLine =
-                                if (isChecked) "[ ] $text"
-                                else "[x] $text"
 
-                            val newLines = lines.toMutableList()
-                            newLines[index] = updatedLine
-                            content = newLines.joinToString("\n")
+                            items[index] =
+                                item.copy(checked = !item.checked)
                         }
                     )
 
                     TextField(
-                        value = text,
+                        value = item.text,
                         onValueChange = { newText ->
-                            val prefix =
-                                if (isChecked) "[x] " else "[ ] "
-
-                            val newLines = lines.toMutableList()
-                            newLines[index] = prefix + newText
-                            content = newLines.joinToString("\n") },
+                            items[index] =
+                                item.copy(text = newText)
+                        },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        textStyle = LocalTextStyle.current.copy(
+                            textDecoration =
+                                if (item.checked)
+                                    TextDecoration.LineThrough
+                                else
+                                    TextDecoration.None
+                        ),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+
+                            onNext = {
+                                items.add(index + 1,
+                                    ChecklistItem("", false))
+                            }
+                        )
                     )
                 }
 

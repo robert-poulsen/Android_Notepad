@@ -29,7 +29,6 @@ fun EditNoteScreen(
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
-    var checklist by remember { mutableStateOf(false) }
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -38,7 +37,6 @@ fun EditNoteScreen(
             viewModel.getNote(noteId)?.let { note ->
                 title = note.title
                 content = note.content
-                checklist = note.checklist
                 pinnedNote = note.pinned
             }
         }
@@ -88,7 +86,7 @@ fun EditNoteScreen(
                                     id = noteId ?: UUID.randomUUID().toString(),
                                     title = finalTitle,
                                     content = content,
-                                    checklist = checklist,
+                                    checklist = false,
                                     pinned = pinnedNote,
                                 )
                             )
