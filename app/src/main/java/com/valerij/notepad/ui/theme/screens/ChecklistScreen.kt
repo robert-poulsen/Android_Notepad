@@ -3,11 +3,13 @@ package com.valerij.notepad.ui.theme.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -19,7 +21,7 @@ import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditNoteScreen(
+fun ChecklistScreen(
     navController: NavController,
     viewModel: NotesViewModel,
     noteId: String?
@@ -29,7 +31,7 @@ fun EditNoteScreen(
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
-    var checklist by remember { mutableStateOf(false) }
+    var checklist by remember { mutableStateOf(true) }
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -64,7 +66,13 @@ fun EditNoteScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Title") },
                     singleLine = true,
-                    textStyle = Typography.bodyLarge,
+                    //  textStyle = Typography.bodyLarge,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
                 )},
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -73,6 +81,14 @@ fun EditNoteScreen(
                 },
                 actions = {
                     IconButton(onClick = {
+                        if(!content.endsWith("\n") && content.isNotBlank()) {
+                            content += "\n"
+                        }
+                        content += "[ ] "
+                    }) {
+                        Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
+                    }
+                    IconButton(onClick = {
                         scope.launch {
                             val finalTitle =
                                 if (title.isBlank()) {
@@ -80,7 +96,7 @@ fun EditNoteScreen(
                                         .lineSequence()
                                         .firstOrNull()
                                         ?.take(30)
-                                        ?: "No name"
+                                        ?: "No Name"
                                 } else title
 
                             viewModel.saveNote(
@@ -150,19 +166,53 @@ fun EditNoteScreen(
         }
     ) { padding ->
 
+        val lines = content.split("\n")
+
         Column(
             modifier = Modifier
                 .padding(padding)
                 .padding(vertical = 10.dp)
                 .fillMaxSize()
         ) {
-            TextField(
-                value = content,
-                onValueChange = { content = it },
-                modifier = Modifier.fillMaxSize(),
-                placeholder = { Text("Text here") },
-                textStyle = Typography.bodySmall,
-            )
+            lines.forEachIndexed { index, line ->
+
+                val isChecked = line.startsWith("[x] ")
+                val text = line.removePrefix("[ ] ")
+                    .removePrefix("[x] ")
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Checkbox(
+                        checked = isChecked,
+                        onCheckedChange = {
+                            val updatedLine =
+                                if (isChecked) "[ ] $text"
+                                else "[x] $text"
+
+                            val newLines = lines.toMutableList()
+                            newLines[index] = updatedLine
+                            content = newLines.joinToString("\n")
+                        }
+                    )
+
+                    TextField(
+                        value = text,
+                        onValueChange = { newText ->
+                            val prefix =
+                                if (isChecked) "[x] " else "[ ] "
+
+                            val newLines = lines.toMutableList()
+                            newLines[index] = prefix + newText
+                            content = newLines.joinToString("\n") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }

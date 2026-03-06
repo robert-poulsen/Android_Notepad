@@ -7,6 +7,7 @@ import androidx.navigation.compose.*
 import androidx.navigation.compose.rememberNavController
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.NotesViewModelFactory
+import com.valerij.notepad.ui.theme.screens.ChecklistScreen
 import com.valerij.notepad.ui.theme.screens.EditNoteScreen
 import com.valerij.notepad.ui.theme.screens.HomeScreen
 
@@ -25,9 +26,14 @@ fun NotesApp() {
             HomeScreen(navController, viewModel)
         }
 
-        composable("edit?noteId={noteId}") { backStack ->
+        composable("editNoteScreen?noteId={noteId}") { backStack ->
             val noteId = backStack.arguments?.getString("noteId")
             EditNoteScreen(navController, viewModel, noteId)
+        }
+
+        composable("checklistScreen?noteId={noteId}") { backStack ->
+            val noteId = backStack.arguments?.getString("noteId")
+            ChecklistScreen(navController, viewModel, noteId)
         }
     }
 }
