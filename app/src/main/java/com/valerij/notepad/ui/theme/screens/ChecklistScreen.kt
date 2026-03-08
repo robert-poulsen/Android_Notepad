@@ -1,5 +1,6 @@
 package com.valerij.notepad.ui.theme.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -42,6 +43,42 @@ fun ChecklistScreen(
     var loaded by remember { mutableStateOf(false) }
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    fun saveAndExit() {
+
+        if (title.isEmpty() && items.get(0).text.isEmpty()){
+            navController.popBackStack()
+        } else {
+            scope.launch {
+
+                val finalTitle =
+                    if (title.isBlank()) {
+                        items.firstOrNull()?.text?.take(30) ?: "No name"
+                    } else title
+
+                val content = items.joinToString("\n") {
+                    if (it.checked) "[x] ${it.text}"
+                    else "[ ] ${it.text}"
+                }
+
+                viewModel.saveNote(
+                    NoteEntity(
+                        id = noteId ?: UUID.randomUUID().toString(),
+                        title = finalTitle,
+                        content = content,
+                        checklist = true,
+                        pinned = pinnedNote
+                    )
+                )
+
+                navController.popBackStack()
+            }
+        }
+    }
+
+    BackHandler {
+        saveAndExit()
+    }
 
     LaunchedEffect(noteId) {
         if (noteId != null) {
@@ -87,7 +124,8 @@ fun ChecklistScreen(
                 title = { TextField(
                     value = title,
                     onValueChange = { title = it },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth(),
                     placeholder = { Text("Title") },
                     singleLine = true,
                     textStyle = Typography.bodyLarge,
@@ -99,7 +137,7 @@ fun ChecklistScreen(
                     )
                 )},
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { saveAndExit() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
@@ -110,30 +148,7 @@ fun ChecklistScreen(
                         Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
                     }
                     IconButton(onClick = {
-                        scope.launch {
-
-                            val finalTitle =
-                                if (title.isBlank()) {
-                                    items.firstOrNull()?.text?.take(30)
-                                        ?: "No name"
-                                } else title
-
-                            val content = items.joinToString("\n"){
-                                if (it.checked) "[x] ${it.text}"
-                                else "[ ] ${it.text}"
-                            }
-
-                            viewModel.saveNote(
-                                NoteEntity(
-                                    id = noteId ?: UUID.randomUUID().toString(),
-                                    title = finalTitle,
-                                    content = content,
-                                    checklist = true,
-                                    pinned = pinnedNote,
-                                )
-                            )
-                            navController.popBackStack()
-                        }
+                        saveAndExit()
                     }) {
                         Icon(Icons.Default.Save, contentDescription = null)
                     }
