@@ -7,13 +7,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -21,6 +25,7 @@ import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -44,33 +49,40 @@ fun ChecklistScreen(
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    val currentId = remember { noteId ?: UUID.randomUUID().toString() }
+    val focusRequester = remember { FocusRequester() }
+
+    val progress =
+        if (items.isEmpty()) 0f
+        else items.count { it.checked }.toFloat() / items.size
+
+    fun buildNote(): NoteEntity {
+        val finalTitle =
+            if (title.isBlank())
+                items.firstOrNull()?.text?.take(30) ?: "No name"
+            else title
+
+        val content = items.joinToString("\n") {
+            if (it.checked) "[x] ${it.text}"
+            else "[ ] ${it.text}"
+        }
+
+        return NoteEntity(
+            id = currentId,
+            title = finalTitle,
+            content = content,
+            checklist = true,
+            pinned = pinnedNote
+        )
+    }
+
     fun saveAndExit() {
 
         if (title.isEmpty() && items.get(0).text.isEmpty()){
             navController.popBackStack()
         } else {
             scope.launch {
-
-                val finalTitle =
-                    if (title.isBlank()) {
-                        items.firstOrNull()?.text?.take(30) ?: "No name"
-                    } else title
-
-                val content = items.joinToString("\n") {
-                    if (it.checked) "[x] ${it.text}"
-                    else "[ ] ${it.text}"
-                }
-
-                viewModel.saveNote(
-                    NoteEntity(
-                        id = noteId ?: UUID.randomUUID().toString(),
-                        title = finalTitle,
-                        content = content,
-                        checklist = true,
-                        pinned = pinnedNote
-                    )
-                )
-
+                viewModel.saveNote(buildNote())
                 navController.popBackStack()
             }
         }
@@ -86,10 +98,8 @@ fun ChecklistScreen(
                 title = note.title
                 pinnedNote = note.pinned
 
-                val lines = note.content.split("\n")
-
                 items.clear()
-                lines.forEach {
+                note.content.split("\n").forEach {
                     when {
                         it.startsWith("[x] ") ->
                             items.add(ChecklistItem(it.removePrefix("[x] "), true))
@@ -144,6 +154,10 @@ fun ChecklistScreen(
                 actions = {
                     IconButton(onClick = {
                         items.add(ChecklistItem("", false))
+                        scope.launch {
+                            delay(100)
+                            focusRequester.requestFocus()
+                        }
                     }) {
                         Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
                     }
@@ -152,13 +166,18 @@ fun ChecklistScreen(
                     }) {
                         Icon(Icons.Default.Save, contentDescription = null)
                     }
-
-                    if (noteId != null) {
-                        IconButton(onClick = {
-                            showDeleteDialog = true
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
+                    IconButton(onClick = {
+                        showDeleteDialog = true
+                    }) {
+                        Icon(Icons.Default.Delete, contentDescription = null)
+                    }
+                    IconButton(onClick = {
+                        items.sortBy {
+                            it.text.toIntOrNull() ?: Int.MAX_VALUE
+                            it.text.lowercase()
                         }
+                    }) {
+                        Icon(Icons.Default.SortByAlpha, contentDescription = null)
                     }
 
                     if (showDeleteDialog) {
@@ -177,12 +196,17 @@ fun ChecklistScreen(
                             confirmButton = {
                                 TextButton(
                                     onClick = {
-                                        scope.launch {
-                                            viewModel.getNote(noteId!!)?.let {
-                                                viewModel.deleteNote(it)
-                                            }
+                                        if (noteId == null){
                                             showDeleteDialog = false
                                             navController.popBackStack()
+                                        } else {
+                                            scope.launch {
+                                                viewModel.getNote(noteId!!)?.let {
+                                                    viewModel.deleteNote(it)
+                                                }
+                                                showDeleteDialog = false
+                                                navController.popBackStack()
+                                            }
                                         }
                                     }
                                 ) {
@@ -221,41 +245,78 @@ fun ChecklistScreen(
                     Checkbox(
                         checked = item.checked,
                         onCheckedChange = {
-
-                            items[index] =
-                                item.copy(checked = !item.checked)
+                            items[index] = item.copy(checked = !item.checked)
+                            items.sortBy {
+                                it.checked
+                            }
                         }
                     )
 
                     TextField(
                         value = item.text,
                         onValueChange = { newText ->
-                            items[index] =
-                                item.copy(text = newText)
+                            if (newText.isBlank() && items.size > 1) {
+                                items.removeAt(index)
+                            } else {
+                                items[index] = item.copy(text = newText)
+                            }
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
                         textStyle = LocalTextStyle.current.copy(
                             textDecoration =
                                 if (item.checked)
                                     TextDecoration.LineThrough
                                 else
-                                    TextDecoration.None
+                                    TextDecoration.None,
+
+                            color =
+                                if (item.checked)
+                                    Color.Gray
+                                else
+                                    LocalContentColor.current
                         ),
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Next
                         ),
                         keyboardActions = KeyboardActions(
-
                             onNext = {
-                                items.add(index + 1,
-                                    ChecklistItem("", false))
+                                items.add(index + 1, ChecklistItem("", false))
+
+                                scope.launch {
+                                    delay(100)
+                                    focusRequester.requestFocus()
+                                }
                             }
                         )
                     )
+
+                    IconButton(
+                        onClick = {
+                            items.removeAt(index)
+
+                            if (items.isEmpty()) {
+                                items.add(ChecklistItem("", false))
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Delete")
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
             }
+            LinearProgressIndicator(
+                progress = progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+            Text(
+                text = "${items.count { it.checked }} / ${items.size} completed",
+                style = Typography.bodySmall
+            )
         }
     }
 }
