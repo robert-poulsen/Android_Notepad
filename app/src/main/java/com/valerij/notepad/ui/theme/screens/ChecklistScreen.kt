@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -25,7 +26,12 @@ import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
-import kotlinx.coroutines.delay
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -44,13 +50,13 @@ fun ChecklistScreen(
     val scope = rememberCoroutineScope()
 
     var title by remember { mutableStateOf("") }
-    var items by remember { mutableStateOf(mutableStateListOf<ChecklistItem>()) }
+    val items = remember { mutableStateListOf<ChecklistItem>() }
     var loaded by remember { mutableStateOf(false) }
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-
+    val lifecycleOwner = LocalLifecycleOwner.current
     val currentId = remember { noteId ?: UUID.randomUUID().toString() }
-    val focusRequester = remember { FocusRequester() }
+    var focusIndex by remember { mutableStateOf<Int?>(null) }
 
     val progress =
         if (items.isEmpty()) 0f
@@ -90,6 +96,25 @@ fun ChecklistScreen(
 
     BackHandler {
         saveAndExit()
+    }
+
+    DisposableEffect(lifecycleOwner) {
+
+        val observer = LifecycleEventObserver { _, event ->
+
+            if (event == Lifecycle.Event.ON_STOP) {
+                scope.launch {
+                    viewModel.saveNote(buildNote())
+                }
+            }
+
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(noteId) {
@@ -154,10 +179,7 @@ fun ChecklistScreen(
                 actions = {
                     IconButton(onClick = {
                         items.add(ChecklistItem("", false))
-                        scope.launch {
-                            delay(100)
-                            focusRequester.requestFocus()
-                        }
+                        focusIndex = items.lastIndex
                     }) {
                         Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
                     }
@@ -237,10 +259,40 @@ fun ChecklistScreen(
         ) {
 
             items.forEachIndexed { index, item ->
+                val focusRequester = remember { FocusRequester() }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.DragIndicator,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .pointerInput(items) {
+
+                                detectDragGesturesAfterLongPress(
+                                    onDrag = { change, dragAmount ->
+
+                                        change.consume()
+
+                                        val target =
+                                            if (dragAmount.y > 0)
+                                                index + 1
+                                            else
+                                                index - 1
+
+                                        if (target in items.indices) {
+
+                                            items.add(
+                                                target,
+                                                items.removeAt(index)
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                    )
 
                     Checkbox(
                         checked = item.checked,
@@ -263,6 +315,12 @@ fun ChecklistScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
+                            .onGloballyPositioned {
+                                if (focusIndex == index) {
+                                    focusRequester.requestFocus()
+                                    focusIndex = null
+                                }
+                            }
                             .focusRequester(focusRequester),
                         textStyle = LocalTextStyle.current.copy(
                             textDecoration =
@@ -283,11 +341,7 @@ fun ChecklistScreen(
                         keyboardActions = KeyboardActions(
                             onNext = {
                                 items.add(index + 1, ChecklistItem("", false))
-
-                                scope.launch {
-                                    delay(100)
-                                    focusRequester.requestFocus()
-                                }
+                                focusIndex = index + 1
                             }
                         )
                     )
