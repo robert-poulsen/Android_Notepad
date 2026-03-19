@@ -83,7 +83,6 @@ fun ChecklistScreen(
     }
 
     fun saveAndExit() {
-
         if (title.isEmpty() && items.get(0).text.isEmpty()){
             navController.popBackStack()
         } else {
