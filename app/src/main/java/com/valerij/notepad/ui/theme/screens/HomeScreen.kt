@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
@@ -26,13 +28,41 @@ fun HomeScreen(
 ) {
     val notes by viewModel.notes.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("edit") }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+            Column(
+                horizontalAlignment = Alignment.End
+            ){
+                if (expanded) {
+                    FloatingActionButton(
+                        onClick = {
+                            expanded = false
+                            navController.navigate("editNoteScreen")
+                        },
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        Text("T")
+                    }
+
+                    FloatingActionButton(
+                        onClick = {
+                            expanded = false
+                            navController.navigate("checklistScreen")
+                        },
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        Text("C")
+                    }
+                }
+                FloatingActionButton(
+                    onClick = {
+                        expanded = !expanded
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                }
             }
         }
     ) { padding ->
@@ -61,7 +91,11 @@ fun HomeScreen(
                     NoteItem(
                         note = note,
                         onClick = {
-                            navController.navigate("edit?noteId=${note.id}")
+                            if (note.checklist){
+                                navController.navigate("checklistScreen?noteId=${note.id}")
+                            } else {
+                                navController.navigate("editNoteScreen?noteId=${note.id}")
+                            }
                         },
                         onPinClick = {
                             viewModel.togglePin(note)

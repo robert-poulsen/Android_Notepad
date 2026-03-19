@@ -8,5 +8,6 @@ data class NoteEntity(
     @PrimaryKey val id: String,
     val title: String,
     val content: String,
+    val checklist: Boolean,
     val pinned: Boolean = false,
 )

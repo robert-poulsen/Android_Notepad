@@ -1,5 +1,6 @@
 package com.valerij.notepad.ui.theme.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -31,6 +32,39 @@ fun EditNoteScreen(
     var loaded by remember { mutableStateOf(false) }
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    fun saveAndExit() {
+
+        if (title.isEmpty() && content.isEmpty()){
+            navController.popBackStack()
+        } else {
+            scope.launch {
+                val finalTitle =
+                    if (title.isBlank()) {
+                        content
+                            .lineSequence()
+                            .firstOrNull()
+                            ?.take(30)
+                            ?: "No name"
+                    } else title
+
+                viewModel.saveNote(
+                    NoteEntity(
+                        id = noteId ?: UUID.randomUUID().toString(),
+                        title = finalTitle,
+                        content = content,
+                        checklist = false,
+                        pinned = pinnedNote,
+                    )
+                )
+                navController.popBackStack()
+            }
+        }
+    }
+
+    BackHandler {
+        saveAndExit()
+    }
 
     LaunchedEffect(noteId) {
         if (noteId != null) {
@@ -65,32 +99,13 @@ fun EditNoteScreen(
                     textStyle = Typography.bodyLarge,
                 )},
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { saveAndExit() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
                 actions = {
                     IconButton(onClick = {
-                        scope.launch {
-                            val finalTitle =
-                                if (title.isBlank()) {
-                                    content
-                                        .lineSequence()
-                                        .firstOrNull()
-                                        ?.take(30)
-                                        ?: "Без назви"
-                                } else title
-
-                            viewModel.saveNote(
-                                NoteEntity(
-                                    id = noteId ?: UUID.randomUUID().toString(),
-                                    title = finalTitle,
-                                    content = content,
-                                    pinned = pinnedNote
-                                )
-                            )
-                            navController.popBackStack()
-                        }
+                        saveAndExit()
                     }) {
                         Icon(Icons.Default.Save, contentDescription = null)
                     }
