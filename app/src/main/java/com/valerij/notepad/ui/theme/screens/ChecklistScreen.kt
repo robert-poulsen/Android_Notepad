@@ -1,14 +1,20 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.*
@@ -18,7 +24,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -26,9 +35,6 @@ import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.material.icons.filled.DragIndicator
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -48,7 +54,6 @@ fun ChecklistScreen(
     noteId: String?
 ) {
     val scope = rememberCoroutineScope()
-
     var title by remember { mutableStateOf("") }
     val items = remember { mutableStateListOf<ChecklistItem>() }
     var loaded by remember { mutableStateOf(false) }
@@ -57,7 +62,12 @@ fun ChecklistScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentId = remember { noteId ?: UUID.randomUUID().toString() }
     var focusIndex by remember { mutableStateOf<Int?>(null) }
-
+    var isLeavingScreen by remember { mutableStateOf(false) }
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var totalDragY by remember { mutableStateOf(0f) }
+    val itemHeights = remember { mutableStateMapOf<Int, Float>() }
+    val focusManager = LocalFocusManager.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val progress =
         if (items.isEmpty()) 0f
         else items.count { it.checked }.toFloat() / items.size
@@ -69,10 +79,10 @@ fun ChecklistScreen(
             else title
 
         val content = items.joinToString("\n") {
-            if (it.checked) "[x] ${it.text}"
+            if (it.checked)
+                "[x] ${it.text}"
             else "[ ] ${it.text}"
         }
-
         return NoteEntity(
             id = currentId,
             title = finalTitle,
@@ -83,7 +93,7 @@ fun ChecklistScreen(
     }
 
     fun saveAndExit() {
-        if (title.isEmpty() && items.get(0).text.isEmpty()){
+        if (title.isBlank() && items.all {it.text.isBlank()} ) {
             navController.popBackStack()
         } else {
             scope.launch {
@@ -94,21 +104,18 @@ fun ChecklistScreen(
     }
 
     BackHandler {
+        isLeavingScreen = true
         saveAndExit()
     }
 
     DisposableEffect(lifecycleOwner) {
-
         val observer = LifecycleEventObserver { _, event ->
-
-            if (event == Lifecycle.Event.ON_STOP) {
+            if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen) {
                 scope.launch {
                     viewModel.saveNote(buildNote())
                 }
             }
-
         }
-
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
@@ -121,12 +128,13 @@ fun ChecklistScreen(
             viewModel.getNote(noteId)?.let { note ->
                 title = note.title
                 pinnedNote = note.pinned
-
                 items.clear()
                 note.content.split("\n").forEach {
                     when {
                         it.startsWith("[x] ") ->
-                            items.add(ChecklistItem(it.removePrefix("[x] "), true))
+                            items.add(
+                                ChecklistItem(it.removePrefix("[x] "), true)
+                            )
 
                         it.startsWith("[ ] ") ->
                             items.add(ChecklistItem(it.removePrefix("[ ] "), false))
@@ -142,6 +150,12 @@ fun ChecklistScreen(
         loaded = true
     }
 
+    LaunchedEffect(isKeyboardVisible) {
+        if (!isKeyboardVisible) {
+            focusManager.clearFocus()
+        }
+    }
+
     if (!loaded) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -155,23 +169,27 @@ fun ChecklistScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { TextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    placeholder = { Text("Title") },
-                    singleLine = true,
-                    textStyle = Typography.bodyLarge,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                title = {
+                    TextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Title") },
+                        singleLine = true,
+                        textStyle = Typography.bodyLarge,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        )
                     )
-                )},
+                },
                 navigationIcon = {
-                    IconButton(onClick = { saveAndExit() }) {
+                    IconButton(onClick = {
+                        isLeavingScreen = true
+                        saveAndExit()
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
@@ -182,45 +200,51 @@ fun ChecklistScreen(
                     }) {
                         Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
                     }
+
                     IconButton(onClick = {
+                        isLeavingScreen = true
                         saveAndExit()
                     }) {
                         Icon(Icons.Default.Save, contentDescription = null)
                     }
-                    IconButton(onClick = {
-                        showDeleteDialog = true
-                    }) {
+
+                    IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, contentDescription = null)
                     }
-                    IconButton(onClick = {
-                        items.sortBy {
-                            it.text.toIntOrNull() ?: Int.MAX_VALUE
-                            it.text.lowercase()
-                        }
-                    }) {
-                        Icon(Icons.Default.SortByAlpha, contentDescription = null)
-                    }
+
+//                  IconButton(onClick = {
+//                      items.sortBy {
+//                          it.text.toIntOrNull() ?: Int.MAX_VALUE
+//                          it.text.lowercase()
+//                      }
+//                  }) {
+//                      Icon(Icons.Default.SortByAlpha, contentDescription = null)
+//                  }
 
                     if (showDeleteDialog) {
                         AlertDialog(
-                            onDismissRequest = {
-                                showDeleteDialog = false
+                            onDismissRequest = { showDeleteDialog = false },
+                            title = {
+                                Text(
+                                    text = "Delete note?",
+                                    style = Typography.bodyLarge
+                                )
                             },
-                            title = { Text(
-                                text = "Delete note?",
-                                style = Typography.bodyLarge
-                            )},
-                            text = { Text(
-                                text = "Are you sure you want to delete this note?",
-                                style = Typography.bodyMedium
-                            )},
+                            text = {
+                                Text(
+                                    text = "Are you sure you want to delete this note?",
+                                    style = Typography.bodyMedium
+                                )
+                            },
                             confirmButton = {
                                 TextButton(
                                     onClick = {
-                                        if (noteId == null){
+                                        if (noteId == null) {
+                                            isLeavingScreen = true
                                             showDeleteDialog = false
                                             navController.popBackStack()
                                         } else {
+                                            isLeavingScreen = true
                                             scope.launch {
                                                 viewModel.getNote(noteId!!)?.let {
                                                     viewModel.deleteNote(it)
@@ -238,55 +262,89 @@ fun ChecklistScreen(
                                 TextButton(
                                     onClick = {
                                         showDeleteDialog = false
-                                    }
-                                ) {
+                                    })
+                                {
                                     Text("No")
                                 }
                             }
                         )
                     }
-                }
-            )
-        }
-    ) { padding ->
-
+                })
+        }) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .padding(16.dp)
                 .fillMaxSize()
-        ) {
-
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+        )
+        {
             items.forEachIndexed { index, item ->
                 val focusRequester = remember { FocusRequester() }
 
                 Row(
+                    modifier = Modifier
+                        .background(
+                            if (draggedIndex == index)
+                                Color.LightGray.copy(alpha = 0.2f)
+                            else
+                                Color.Transparent
+                        )
+                        .onGloballyPositioned { coords ->
+                            itemHeights[index] = coords.size.height.toFloat()
+                        },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.DragIndicator,
                         contentDescription = null,
+                        tint = if (draggedIndex == index) Color.Gray else Color.LightGray,
                         modifier = Modifier
                             .size(24.dp)
+                            .background(
+                                if (draggedIndex == index)
+                                    Color.LightGray.copy(alpha = 0.3f)
+                                else
+                                    Color.Transparent
+                            )
                             .pointerInput(items) {
-
                                 detectDragGesturesAfterLongPress(
-                                    onDrag = { change, dragAmount ->
 
+                                    onDragStart = {
+                                        draggedIndex = index
+                                        totalDragY = 0f
+                                        focusManager.clearFocus()
+                                    },
+
+                                    onDragEnd = {
+                                        draggedIndex = null
+                                        totalDragY = 0f
+                                    },
+
+                                    onDragCancel = {
+                                        draggedIndex = null
+                                        totalDragY = 0f
+                                    },
+
+                                    onDrag = { change, dragAmount ->
                                         change.consume()
 
-                                        val target =
-                                            if (dragAmount.y > 0)
-                                                index + 1
-                                            else
-                                                index - 1
+                                        val currentIndex = draggedIndex ?: return@detectDragGesturesAfterLongPress
 
-                                        if (target in items.indices) {
+                                        totalDragY += dragAmount.y
 
-                                            items.add(
-                                                target,
-                                                items.removeAt(index)
-                                            )
+                                        val currentHeight = itemHeights[currentIndex] ?: return@detectDragGesturesAfterLongPress
+
+                                        if (totalDragY > currentHeight && currentIndex < items.lastIndex) {
+                                            items.add(currentIndex + 1, items.removeAt(currentIndex))
+                                            draggedIndex = currentIndex + 1
+                                            totalDragY -= currentHeight
+                                        }
+                                        if (totalDragY < -currentHeight && currentIndex > 0) {
+                                            items.add(currentIndex - 1, items.removeAt(currentIndex))
+                                            draggedIndex = currentIndex - 1
+                                            totalDragY += currentHeight
                                         }
                                     }
                                 )
@@ -297,11 +355,8 @@ fun ChecklistScreen(
                         checked = item.checked,
                         onCheckedChange = {
                             items[index] = item.copy(checked = !item.checked)
-                            items.sortBy {
-                                it.checked
-                            }
-                        }
-                    )
+                            items.sortBy { it.checked }
+                        })
 
                     TextField(
                         value = item.text,
@@ -320,19 +375,20 @@ fun ChecklistScreen(
                                     focusIndex = null
                                 }
                             }
-                            .focusRequester(focusRequester),
+                            .focusRequester(focusRequester)
+                            .pointerInput(Unit){
+                                detectTapGestures {
+                                    focusManager.clearFocus()
+                                }
+                            },
                         textStyle = LocalTextStyle.current.copy(
                             textDecoration =
-                                if (item.checked)
-                                    TextDecoration.LineThrough
-                                else
-                                    TextDecoration.None,
-
+                                if (item.checked) TextDecoration.LineThrough
+                                else TextDecoration.None,
                             color =
                                 if (item.checked)
                                     Color.Gray
-                                else
-                                    LocalContentColor.current
+                                else LocalContentColor.current
                         ),
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Next
@@ -344,20 +400,16 @@ fun ChecklistScreen(
                             }
                         )
                     )
-
-                    IconButton(
-                        onClick = {
-                            items.removeAt(index)
-
-                            if (items.isEmpty()) {
-                                items.add(ChecklistItem("", false))
-                            }
+                    IconButton(onClick = {
+                        items.removeAt(index)
+                        if (items.isEmpty()) {
+                            items.add(ChecklistItem("", false))
                         }
-                    ) {
+                    })
+                    {
                         Icon(Icons.Default.Close, contentDescription = "Delete")
                     }
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
             }
             LinearProgressIndicator(

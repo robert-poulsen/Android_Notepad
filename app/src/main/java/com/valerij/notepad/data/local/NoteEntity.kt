@@ -10,4 +10,5 @@ data class NoteEntity(
     val content: String,
     val checklist: Boolean,
     val pinned: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
 )
