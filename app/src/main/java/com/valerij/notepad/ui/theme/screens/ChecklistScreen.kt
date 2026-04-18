@@ -3,6 +3,7 @@ package com.valerij.notepad.ui.theme.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -26,6 +27,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -63,7 +65,9 @@ fun ChecklistScreen(
     var isLeavingScreen by remember { mutableStateOf(false) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var totalDragY by remember { mutableStateOf(0f) }
-    val itemHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
+    val itemHeights = remember { mutableStateMapOf<Int, Float>() }
+    val focusManager = LocalFocusManager.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val progress =
         if (items.isEmpty()) 0f
         else items.count { it.checked }.toFloat() / items.size
@@ -89,7 +93,7 @@ fun ChecklistScreen(
     }
 
     fun saveAndExit() {
-        if (title.isEmpty() && items.get(0).text.isEmpty()) {
+        if (title.isBlank() && items.all {it.text.isBlank()} ) {
             navController.popBackStack()
         } else {
             scope.launch {
@@ -146,6 +150,12 @@ fun ChecklistScreen(
         loaded = true
     }
 
+    LaunchedEffect(isKeyboardVisible) {
+        if (!isKeyboardVisible) {
+            focusManager.clearFocus()
+        }
+    }
+
     if (!loaded) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -176,7 +186,10 @@ fun ChecklistScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        isLeavingScreen = true
+                        saveAndExit()
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
@@ -188,7 +201,10 @@ fun ChecklistScreen(
                         Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
                     }
 
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        isLeavingScreen = true
+                        saveAndExit()
+                    }) {
                         Icon(Icons.Default.Save, contentDescription = null)
                     }
 
@@ -274,7 +290,10 @@ fun ChecklistScreen(
                                 Color.LightGray.copy(alpha = 0.2f)
                             else
                                 Color.Transparent
-                        ),
+                        )
+                        .onGloballyPositioned { coords ->
+                            itemHeights[index] = coords.size.height.toFloat()
+                        },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -295,6 +314,7 @@ fun ChecklistScreen(
                                     onDragStart = {
                                         draggedIndex = index
                                         totalDragY = 0f
+                                        focusManager.clearFocus()
                                     },
 
                                     onDragEnd = {
@@ -314,15 +334,17 @@ fun ChecklistScreen(
 
                                         totalDragY += dragAmount.y
 
-                                        if (totalDragY > itemHeightPx && currentIndex < items.lastIndex) {
+                                        val currentHeight = itemHeights[currentIndex] ?: return@detectDragGesturesAfterLongPress
+
+                                        if (totalDragY > currentHeight && currentIndex < items.lastIndex) {
                                             items.add(currentIndex + 1, items.removeAt(currentIndex))
                                             draggedIndex = currentIndex + 1
-                                            totalDragY -= itemHeightPx
+                                            totalDragY -= currentHeight
                                         }
-                                        if (totalDragY < -itemHeightPx && currentIndex > 0) {
+                                        if (totalDragY < -currentHeight && currentIndex > 0) {
                                             items.add(currentIndex - 1, items.removeAt(currentIndex))
                                             draggedIndex = currentIndex - 1
-                                            totalDragY += itemHeightPx
+                                            totalDragY += currentHeight
                                         }
                                     }
                                 )
@@ -353,7 +375,12 @@ fun ChecklistScreen(
                                     focusIndex = null
                                 }
                             }
-                            .focusRequester(focusRequester),
+                            .focusRequester(focusRequester)
+                            .pointerInput(Unit){
+                                detectTapGestures {
+                                    focusManager.clearFocus()
+                                }
+                            },
                         textStyle = LocalTextStyle.current.copy(
                             textDecoration =
                                 if (item.checked) TextDecoration.LineThrough

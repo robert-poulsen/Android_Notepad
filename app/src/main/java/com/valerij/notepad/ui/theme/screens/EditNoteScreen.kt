@@ -1,6 +1,7 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -39,6 +42,7 @@ fun EditNoteScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isLeavingScreen by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val focusManager = LocalFocusManager.current
 
     fun buildNote(): NoteEntity {
         val finalTitle =
@@ -60,7 +64,7 @@ fun EditNoteScreen(
     }
 
     fun saveAndExit() {
-        if (title.isEmpty() && content.isEmpty()){
+        if (title.isBlank() && content.isBlank()){
             navController.popBackStack()
         } else {
             scope.launch {
@@ -125,12 +129,18 @@ fun EditNoteScreen(
                     textStyle = Typography.bodyLarge,
                 )},
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        isLeavingScreen = true
+                        saveAndExit()
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        isLeavingScreen = true
+                        saveAndExit()
+                    }) {
                         Icon(Icons.Default.Save, contentDescription = null)
                     }
 
@@ -197,12 +207,17 @@ fun EditNoteScreen(
                 .padding(vertical = 10.dp)
                 .fillMaxSize()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
         ) {
             TextField(
                 value = content,
                 onValueChange = { content = it },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit){
+                        detectTapGestures {
+                            focusManager.clearFocus()
+                        }
+                    },
                 placeholder = { Text("Text here") },
                 textStyle = Typography.bodySmall,
             )

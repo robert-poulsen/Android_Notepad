@@ -40,8 +40,16 @@ class NotesViewModel(
         }
     }
 
-    suspend fun deleteNote(note: NoteEntity){
-        repository.deleteNote(note)
+    fun deleteNote(note: NoteEntity) {
+        viewModelScope.launch {
+            repository.deleteNote(note)
+        }
+    }
+
+    fun deleteNotes(ids: List<String>) {
+        viewModelScope.launch {
+            repository.deleteNotes(ids)
+        }
     }
 
     suspend fun getNote(id: String): NoteEntity? {

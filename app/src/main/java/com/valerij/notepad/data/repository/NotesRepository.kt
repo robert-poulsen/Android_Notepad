@@ -19,4 +19,10 @@ class NotesRepository(
     suspend fun getById(id: String): NoteEntity? {
         return dao.getNoteById(id)
     }
+
+    suspend fun deleteNotes(ids: List<String>) {
+        if (ids.isNotEmpty()) {
+            dao.deleteNotes(ids)
+        }
+    }
 }

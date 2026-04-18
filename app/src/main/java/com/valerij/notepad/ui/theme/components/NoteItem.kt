@@ -1,12 +1,15 @@
 package com.valerij.notepad.ui.theme.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.valerij.notepad.data.local.NoteEntity
 
@@ -15,8 +18,17 @@ fun NoteItem(
     note: NoteEntity,
     onClick: () -> Unit,
     onPinClick: () -> Unit,
+    isSelected: Boolean,
+    onLongClick: () -> Unit,
 ) {
-    Row(){
+    Row(Modifier
+        .combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
+        .background(if (isSelected)
+            Color.LightGray
+        else Color.Transparent)){
         IconButton(
             modifier = Modifier
                 .padding(top = 30.dp),
