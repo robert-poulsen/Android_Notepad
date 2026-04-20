@@ -10,12 +10,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
@@ -24,6 +26,7 @@ import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,14 +36,20 @@ fun HomeScreen(
 ) {
     val notes by viewModel.notes.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val scope = rememberCoroutineScope()
 
     var expanded by remember { mutableStateOf(false) }
     var selectionMode by remember { mutableStateOf(false) }
     val selectedNotes = remember { mutableStateListOf<String>() }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isLeavingScreen by remember { mutableStateOf(false) }
+    val sortDesc by viewModel.sortDesc.collectAsState()
 
     val sortedNotes = notes.sortedWith(
         compareByDescending<NoteEntity> { it.pinned }
-            .thenByDescending { it.createdAt }
+            .thenBy {
+                if (sortDesc) -it.createdAt else it.createdAt
+            }
     )
 
     Scaffold(
@@ -66,8 +75,6 @@ fun HomeScreen(
                         }
                     }
                 )
-            } else {
-                TopAppBar(title = { Text("Notes") })
             }
         },
         floatingActionButton = {
@@ -104,19 +111,106 @@ fun HomeScreen(
         ) {
 
             if (!selectionMode) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = viewModel::updateSearch,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) }
-                )
+                Row() {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = viewModel::updateSearch,
+                        placeholder = { Text("Search") },
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                    )
+
+                    IconButton(onClick = {
+                        viewModel.toggleSortByDate()
+                    }) {
+                        Icon(Icons.Default.Sort, null)
+                    }
+
+                    IconButton(onClick = {
+                        viewModel.toggleSortByAlfa()
+                    }) {
+                        Icon(Icons.Default.SortByAlpha, null)
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
             LazyColumn {
                 items(sortedNotes, key = { it.id }) { note ->
+
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        positionalThreshold = { totalDistance ->
+                            totalDistance * 0.5f
+                        }
+                    )
+
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = {
+                                showDeleteDialog = false
+                            },
+                            title = { Text(
+                                text = "Delete note?",
+                                style = Typography.bodyLarge
+                            )},
+                            text = { Text(
+                                text = "Are you sure you want to delete this note?",
+                                style = Typography.bodyMedium
+                            )},
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        if (note.id == null){
+                                            isLeavingScreen = true
+
+                                            showDeleteDialog = false
+                                            navController.popBackStack()
+                                        } else {
+                                            isLeavingScreen = true
+
+                                            scope.launch {
+                                                viewModel.getNote(note.id!!)?.let {
+                                                    viewModel.deleteNote(it)
+                                                }
+                                                showDeleteDialog = false
+                                                navController.popBackStack()
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text("Yes")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = {
+                                        showDeleteDialog = false
+                                    }
+                                ) {
+                                    Text("No")
+                                }
+                            }
+                        )
+                    }
+
+
+                    LaunchedEffect(dismissState.currentValue) {
+                        when (dismissState.currentValue) {
+                            SwipeToDismissBoxValue.StartToEnd -> {
+                                showDeleteDialog = true
+                                launch {
+                                    dismissState.reset()
+                                }
+                            }
+                            SwipeToDismissBoxValue.EndToStart -> {
+                                viewModel.togglePin(note)
+                                launch {
+                                    dismissState.reset()
+                                }
+                            }
+                            else -> Unit
+                        }
+                    }
 
                     val isSelected = selectedNotes.contains(note.id)
 
@@ -150,26 +244,18 @@ fun HomeScreen(
 
                     if (!selectionMode) {
                         SwipeToDismissBox(
-                            state = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    when (value) {
-                                        SwipeToDismissBoxValue.StartToEnd -> {
-                                            viewModel.deleteNote(note)
-                                            true
-                                        }
-                                        SwipeToDismissBoxValue.EndToStart -> {
-                                            viewModel.togglePin(note)
-                                            false
-                                        }
-                                        else -> false
-                                    }
-                                }
-                            ),
+                            state = dismissState,
                             backgroundContent = {
+                                val color = when (dismissState.targetValue){
+                                    SwipeToDismissBoxValue.StartToEnd -> Color.Red
+                                    SwipeToDismissBoxValue.EndToStart -> Color.Yellow
+                                    else -> Color.Transparent
+                                }
+
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(Color.LightGray)
+                                        .background(color)
                                 )
                             }
                         ) {

@@ -212,15 +212,6 @@ fun ChecklistScreen(
                         Icon(Icons.Default.Delete, contentDescription = null)
                     }
 
-//                  IconButton(onClick = {
-//                      items.sortBy {
-//                          it.text.toIntOrNull() ?: Int.MAX_VALUE
-//                          it.text.lowercase()
-//                      }
-//                  }) {
-//                      Icon(Icons.Default.SortByAlpha, contentDescription = null)
-//                  }
-
                     if (showDeleteDialog) {
                         AlertDialog(
                             onDismissRequest = { showDeleteDialog = false },

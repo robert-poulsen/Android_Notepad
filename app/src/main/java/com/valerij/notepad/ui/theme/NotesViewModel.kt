@@ -12,6 +12,8 @@ class NotesViewModel(
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
+    private val _sortDesc = MutableStateFlow(true)
+    val sortDesc = _sortDesc.asStateFlow()
     val searchQuery = _searchQuery.asStateFlow()
 
     val notes = searchQuery.flatMapLatest {
@@ -50,6 +52,14 @@ class NotesViewModel(
         viewModelScope.launch {
             repository.deleteNotes(ids)
         }
+    }
+
+    fun toggleSortByAlfa() {
+
+    }
+
+    fun toggleSortByDate() {
+        _sortDesc.value = !_sortDesc.value
     }
 
     suspend fun getNote(id: String): NoteEntity? {
