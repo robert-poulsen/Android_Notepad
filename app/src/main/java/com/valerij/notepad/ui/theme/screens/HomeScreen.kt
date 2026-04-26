@@ -21,8 +21,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
@@ -31,6 +29,7 @@ import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,35 +49,37 @@ fun HomeScreen(
     var isLeavingScreen by remember { mutableStateOf(false) }
     val sortDesc by viewModel.sortDesc.collectAsState()
     val sortByAlphabet by viewModel.sortByAlphabet.collectAsState()
+    var pendingPinId by remember { mutableStateOf<String?>(null) }
+    val sortType by viewModel.sortType.collectAsState()
 
-    val sortedNotes = notes.sortedWith(
-        compareByDescending<NoteEntity> { it.pinned }
-            .thenComparator { a, b ->
+    val sortedNotes = remember(notes, sortType) {
 
-                if (sortByAlphabet) {
-                    //Алфавіт + цифри
-                    val titleA = a.title.trim().lowercase()
-                    val titleB = b.title.trim().lowercase()
+        val pinned = notes.filter { it.pinned }
+        val others = notes.filter { !it.pinned }
 
-                    val isDigitA = titleA.firstOrNull()?.isDigit() == true
-                    val isDigitB = titleB.firstOrNull()?.isDigit() == true
+        fun sortList(list: List<NoteEntity>): List<NoteEntity> {
+            return when (sortType) {
 
-                    when {
-                        isDigitA && !isDigitB -> -1 // цифри вище
-                        !isDigitA && isDigitB -> 1
-                        else -> titleA.compareTo(titleB)
-                    }
+                NotesViewModel.SortType.TITLE_ASC -> list.sortedWith(compareBy {
+                    val title = it.title.trim().lowercase()
+                    val isDigit = title.firstOrNull()?.isDigit() == true
+                    if (isDigit) "0$title" else "1$title"
+                })
 
-                } else {
-                    //по даті
-                    if (sortDesc) {
-                        b.createdAt.compareTo(a.createdAt)
-                    } else {
-                        a.createdAt.compareTo(b.createdAt)
-                    }
-                }
+                NotesViewModel.SortType.TITLE_DESC -> list.sortedWith(compareByDescending {
+                    val title = it.title.trim().lowercase()
+                    val isDigit = title.firstOrNull()?.isDigit() == true
+                    if (isDigit) "0$title" else "1$title"
+                })
+
+                NotesViewModel.SortType.DATE_ASC -> list.sortedBy { it.createdAt }
+
+                NotesViewModel.SortType.DATE_DESC -> list.sortedByDescending { it.createdAt }
             }
-    )
+        }
+
+        sortList(pinned) + sortList(others)
+    }
 
     BackHandler(enabled = selectionMode) {
         selectionMode = false
@@ -155,15 +156,11 @@ fun HomeScreen(
                         leadingIcon = { Icon(Icons.Default.Search, null) },
                     )
 
-                    IconButton(onClick = {
-                        viewModel.toggleSortByDate()
-                    }) {
+                    IconButton(onClick = { viewModel.toggleSortByDate() }) {
                         Icon(Icons.Default.Sort, null)
                     }
 
-                    IconButton(onClick = {
-                        viewModel.toggleSortByAlfa()
-                    }) {
+                    IconButton(onClick = { viewModel.toggleSortByAlphabet() }) {
                         Icon(Icons.Default.SortByAlpha, null)
                     }
                 }
@@ -215,24 +212,38 @@ fun HomeScreen(
                 )
             }
 
+            LaunchedEffect(pendingPinId) {
+                pendingPinId?.let { id ->
+                    delay(120)
+                    viewModel.togglePin(id)
+                    pendingPinId = null
+                }
+            }
+
             LazyColumn {
                 items(sortedNotes, key = { it.id }) { note ->
                     val dismissState = rememberSwipeToDismissBoxState(
                         positionalThreshold = { it * 0.5f },
                         confirmValueChange = { value ->
                             when (value) {
+
                                 SwipeToDismissBoxValue.StartToEnd -> {
                                     noteToDelete = note
                                     false
                                 }
+
                                 SwipeToDismissBoxValue.EndToStart -> {
-                                    viewModel.togglePin(note)
+                                    pendingPinId = note.id
                                     false
                                 }
+
                                 else -> false
                             }
-                        },
+                        }
+
+
                     )
+
 
                     val isSelected = selectedNotes.contains(note.id)
 
@@ -260,40 +271,34 @@ fun HomeScreen(
                                     }
                                 }
                             },
-                            onPinClick = { viewModel.togglePin(note) }
+                            onPinClick = { viewModel.togglePin(note.id) }
                         )
                     }
 
                     if (!selectionMode) {
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            backgroundContent = {
-                                val color = when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Color.Red
-                                    SwipeToDismissBoxValue.EndToStart -> Color.Yellow
-                                    else -> Color.Transparent
-                                }
+                        key(note.id) {
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
 
-                                val icon = when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Delete
-                                    SwipeToDismissBoxValue.EndToStart ->
-                                        if (note.pinned) Icons.Default.Star else Icons.Default.StarBorder
-                                    else -> null
-                                }
+                                    val color = when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Color.Red
+                                        SwipeToDismissBoxValue.EndToStart -> Color.Yellow
+                                        else -> Color.Transparent
+                                    }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(color),
-                                    contentAlignment = Alignment.Center
-                                ){
-                                    icon?.let {
-                                        Icon(it, null)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(color),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+
                                     }
                                 }
+                            ) {
+                                content()
                             }
-                        ) {
-                            content()
                         }
                     } else {
                         content()

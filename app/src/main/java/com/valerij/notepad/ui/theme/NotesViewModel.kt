@@ -11,9 +11,18 @@ class NotesViewModel(
     private val repository: NotesRepository
 ) : ViewModel() {
 
+    enum class SortType {
+        DATE_ASC,
+        DATE_DESC,
+        TITLE_ASC,
+        TITLE_DESC
+    }
+
     private val _searchQuery = MutableStateFlow("")
     private val _sortDesc = MutableStateFlow(true)
     private val _sortByAlphabet = MutableStateFlow(false)
+    private val _sortType = MutableStateFlow(SortType.DATE_DESC)
+    val sortType = _sortType.asStateFlow()
     val sortByAlphabet = _sortByAlphabet.asStateFlow()
     val sortDesc = _sortDesc.asStateFlow()
     val searchQuery = _searchQuery.asStateFlow()
@@ -30,10 +39,12 @@ class NotesViewModel(
         _searchQuery.value = query
     }
 
-    fun togglePin(note: NoteEntity) {
+    fun togglePin(noteId: String) {
         viewModelScope.launch {
+            val current = repository.getById(noteId) ?: return@launch
+
             repository.addOrUpdate(
-                note.copy(pinned = !note.pinned)
+                current.copy(pinned = !current.pinned)
             )
         }
     }
@@ -56,12 +67,20 @@ class NotesViewModel(
         }
     }
 
-    fun toggleSortByAlfa() {
-        _sortByAlphabet.value = !_sortByAlphabet.value
+    fun toggleSortByAlphabet() {
+        _sortType.value = when (_sortType.value) {
+            SortType.TITLE_ASC -> SortType.TITLE_DESC
+            SortType.TITLE_DESC -> SortType.TITLE_ASC
+            else -> SortType.TITLE_ASC
+        }
     }
 
     fun toggleSortByDate() {
-        _sortDesc.value = !_sortDesc.value
+        _sortType.value = when (_sortType.value) {
+            SortType.DATE_DESC -> SortType.DATE_ASC
+            SortType.DATE_ASC -> SortType.DATE_DESC
+            else -> SortType.DATE_DESC
+        }
     }
 
     suspend fun getNote(id: String): NoteEntity? {
