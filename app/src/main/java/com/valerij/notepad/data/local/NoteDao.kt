@@ -10,7 +10,7 @@ interface NoteDao {
         SELECT * FROM NoteEntity
         WHERE title LIKE '%' || :query || '%' 
            OR content LIKE '%' || :query || '%'
-        ORDER BY pinned DESC
+        ORDER BY pinned DESC, createdAt DESC
     """)
     fun getAllNotes(query: String): Flow<List<NoteEntity>>
 
