@@ -13,6 +13,8 @@ class NotesViewModel(
 
     private val _searchQuery = MutableStateFlow("")
     private val _sortDesc = MutableStateFlow(true)
+    private val _sortByAlphabet = MutableStateFlow(false)
+    val sortByAlphabet = _sortByAlphabet.asStateFlow()
     val sortDesc = _sortDesc.asStateFlow()
     val searchQuery = _searchQuery.asStateFlow()
 
@@ -55,7 +57,7 @@ class NotesViewModel(
     }
 
     fun toggleSortByAlfa() {
-
+        _sortByAlphabet.value = !_sortByAlphabet.value
     }
 
     fun toggleSortByDate() {
