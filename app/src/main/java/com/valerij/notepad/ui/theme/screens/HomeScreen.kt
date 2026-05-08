@@ -1,7 +1,9 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.VectorConverter
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -11,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Close
@@ -23,7 +26,13 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier.Companion
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.unit.sp
 import com.valerij.notepad.data.local.NoteEntity
 
 import com.valerij.notepad.ui.theme.components.NoteItem
@@ -51,6 +60,8 @@ fun HomeScreen(
     val sortByAlphabet by viewModel.sortByAlphabet.collectAsState()
     var pendingPinId by remember { mutableStateOf<String?>(null) }
     val sortType by viewModel.sortType.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     val sortedNotes = remember(notes, sortType) {
 
@@ -79,6 +90,12 @@ fun HomeScreen(
         }
 
         sortList(pinned) + sortList(others)
+    }
+
+    LaunchedEffect(keyboardVisible) {
+        if (!keyboardVisible) {
+            focusManager.clearFocus()
+        }
     }
 
     BackHandler(enabled = selectionMode) {
@@ -121,7 +138,10 @@ fun HomeScreen(
                                 expanded = false
                                 navController.navigate("editNoteScreen")
                             },
-                            modifier = Modifier.offset(x = (-70).dp, y = (-70).dp)
+                            modifier = Modifier.offset(x = (-15).dp, y = (-70).dp),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.inversePrimary,
                         ) { Icon(Icons.Default.Notes, null) }
 
                         FloatingActionButton(
@@ -129,7 +149,10 @@ fun HomeScreen(
                                 expanded = false
                                 navController.navigate("checklistScreen")
                             },
-                            modifier = Modifier.offset(x = 0.dp, y = (-100).dp)
+                            modifier = Modifier.offset(x = (-70).dp, y = (-15).dp),
+                            shape = CircleShape,
+                            contentColor = MaterialTheme.colorScheme.inversePrimary,
+                            containerColor = MaterialTheme.colorScheme.primary,
                         ) { Icon(Icons.Default.Checklist, null) }
                     }
                     FloatingActionButton(onClick = { expanded = !expanded }) {
@@ -152,6 +175,10 @@ fun HomeScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = viewModel::updateSearch,
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(
+                            lineHeight = 35.sp
+                        ),
                         placeholder = { Text("Search") },
                         leadingIcon = { Icon(Icons.Default.Search, null) },
                     )
@@ -282,9 +309,8 @@ fun HomeScreen(
                                 backgroundContent = {
 
                                     val color = when (dismissState.targetValue) {
-                                        SwipeToDismissBoxValue.StartToEnd -> Color.Red
-                                        SwipeToDismissBoxValue.EndToStart -> Color.Yellow
-                                        else -> Color.Transparent
+                                        SwipeToDismissBoxValue.Settled -> Color.Transparent
+                                        else -> Color.LightGray
                                     }
 
                                     Box(

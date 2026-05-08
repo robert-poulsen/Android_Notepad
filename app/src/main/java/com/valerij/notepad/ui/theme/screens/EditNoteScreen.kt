@@ -1,21 +1,20 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
+import androidx.compose.material3.OutlinedTextFieldDefaults.contentPadding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -43,6 +42,9 @@ fun EditNoteScreen(
     var isLeavingScreen by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val textStyleMedium = MaterialTheme.typography.bodyMedium
+    val textStyleLarge = MaterialTheme.typography.bodyLarge
 
     fun buildNote(): NoteEntity {
         val finalTitle =
@@ -96,6 +98,12 @@ fun EditNoteScreen(
         }
     }
 
+    LaunchedEffect(keyboardVisible) {
+        if (!keyboardVisible) {
+            focusManager.clearFocus()
+        }
+    }
+
     LaunchedEffect(noteId) {
         if (noteId != null) {
             viewModel.getNote(noteId)?.let { note ->
@@ -124,9 +132,11 @@ fun EditNoteScreen(
                     value = title,
                     onValueChange = { title = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Title") },
+                    placeholder = { Text(
+                        "Title",
+                        style = textStyleLarge) },
                     singleLine = true,
-                    textStyle = Typography.bodyLarge,
+                    textStyle = textStyleLarge,
                 )},
                 navigationIcon = {
                     IconButton(onClick = {
@@ -211,15 +221,12 @@ fun EditNoteScreen(
             TextField(
                 value = content,
                 onValueChange = { content = it },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit){
-                        detectTapGestures {
-                            focusManager.clearFocus()
-                        }
-                    },
-                placeholder = { Text("Text here") },
-                textStyle = Typography.bodySmall,
+                modifier = Modifier.fillMaxSize(),
+                placeholder = { Text(
+                    text = "Text here",
+                    style = textStyleMedium,
+                ) },
+                textStyle = textStyleMedium,
             )
         }
     }

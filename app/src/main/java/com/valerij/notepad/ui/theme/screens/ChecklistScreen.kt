@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +23,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -31,6 +33,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.key.*
 import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
@@ -352,11 +355,7 @@ fun ChecklistScreen(
                     TextField(
                         value = item.text,
                         onValueChange = { newText ->
-                            if (newText.isBlank() && items.size > 1) {
-                                items.removeAt(index)
-                            } else {
-                                items[index] = item.copy(text = newText)
-                            }
+                            items[index] = item.copy(text = newText)
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -367,9 +366,24 @@ fun ChecklistScreen(
                                 }
                             }
                             .focusRequester(focusRequester)
-                            .pointerInput(Unit){
-                                detectTapGestures {
-                                    focusManager.clearFocus()
+                            .onPreviewKeyEvent { event ->
+
+                                if (
+                                    event.type == KeyEventType.KeyDown &&
+                                    event.key == Key.Backspace &&
+                                    item.text.isBlank() &&
+                                    items.size > 1
+                                ) {
+
+                                    items.removeAt(index)
+
+                                    if (index > 0) {
+                                        focusIndex = index - 1
+                                    }
+
+                                    true
+                                } else {
+                                    false
                                 }
                             },
                         textStyle = LocalTextStyle.current.copy(
@@ -387,7 +401,7 @@ fun ChecklistScreen(
                         keyboardActions = KeyboardActions(
                             onNext = {
                                 items.add(index + 1, ChecklistItem("", false))
-                                focusIndex = index + 1
+                                focusIndex = items.lastIndex
                             }
                         )
                     )

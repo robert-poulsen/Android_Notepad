@@ -8,8 +8,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.valerij.notepad.data.local.NoteEntity
 import java.text.SimpleDateFormat
@@ -58,22 +60,31 @@ fun NoteItem(
                 )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Row() {
-                    if(note.title.isBlank()){
-                        Text(
-                            note.content,
-                            maxLines = 1,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    } else {
-                        Text(note.title, style = MaterialTheme.typography.bodyMedium)
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = if (note.title.isBlank()) {
+                            note.content
+                        } else {
+                            note.title
+                        },
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     Text(
                         text = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
                             .format(Date(note.createdAt)),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = Color.Gray,
+                        maxLines = 1
                     )
                 }
 
@@ -82,10 +93,11 @@ fun NoteItem(
                 Text(
                     note.content,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+               // Spacer(modifier = Modifier.width(16.dp))
             }
         }
     }
