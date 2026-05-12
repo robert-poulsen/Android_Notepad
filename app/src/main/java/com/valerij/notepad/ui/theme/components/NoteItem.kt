@@ -26,30 +26,42 @@ fun NoteItem(
     isSelected: Boolean,
     onLongClick: () -> Unit,
 ) {
-    Row(Modifier
-        .fillMaxWidth()
-        .combinedClickable(
-            onClick = onClick,
-            onLongClick = onLongClick
-        )
-        .padding(12.dp)
-        .background(if (isSelected)
-            Color.LightGray
-        else Color.Transparent)){
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+            .padding(12.dp)
+            .background(
+                if (isSelected)
+                    Color.LightGray
+                else
+                    Color.Transparent
+            ),
+
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
         IconButton(
-            modifier = Modifier
-                .padding(top = 30.dp),
-            onClick = {onPinClick()}
-        ){
+            modifier = Modifier.size(52.dp),
+            onClick = { onPinClick() }
+        ) {
             Icon(
-                Icons.Default.PushPin,
+                imageVector = Icons.Default.PushPin,
                 contentDescription = null,
+
+                modifier = Modifier.size(28.dp),
+
                 tint = if (note.pinned)
                     MaterialTheme.colorScheme.inversePrimary
                 else
                     MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -59,45 +71,50 @@ fun NoteItem(
                     onLongClick = onLongClick
                 )
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Text(
-                        text = if (note.title.isBlank()) {
+
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+
+                Text(
+                    text =
+                        if (note.title.isBlank()) {
                             note.content
                         } else {
                             note.title
                         },
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
 
-                    Text(
-                        text = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
-                            .format(Date(note.createdAt)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                        maxLines = 1
-                    )
-                }
+                    style = MaterialTheme.typography.bodyMedium,
+
+                    color = MaterialTheme.colorScheme.primary,
+                )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    note.content,
+                    text = note.content,
+
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+
                     style = MaterialTheme.typography.bodySmall
                 )
 
-               // Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = SimpleDateFormat(
+                        "dd MMM HH:mm",
+                        Locale.getDefault()
+                    ).format(Date(note.createdAt)),
+
+                    style = MaterialTheme.typography.bodySmall,
+
+                    color = MaterialTheme.colorScheme.tertiary
+                )
             }
         }
     }

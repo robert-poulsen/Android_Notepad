@@ -1,9 +1,7 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.VectorConverter
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -26,12 +24,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier.Companion
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.sp
 import com.valerij.notepad.data.local.NoteEntity
 
@@ -140,8 +135,8 @@ fun HomeScreen(
                             },
                             modifier = Modifier.offset(x = (-15).dp, y = (-70).dp),
                             shape = CircleShape,
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.inversePrimary,
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.secondaryContainer,
                         ) { Icon(Icons.Default.Notes, null) }
 
                         FloatingActionButton(
@@ -151,12 +146,15 @@ fun HomeScreen(
                             },
                             modifier = Modifier.offset(x = (-70).dp, y = (-15).dp),
                             shape = CircleShape,
-                            contentColor = MaterialTheme.colorScheme.inversePrimary,
-                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.secondaryContainer,
+                            containerColor = MaterialTheme.colorScheme.secondary,
                         ) { Icon(Icons.Default.Checklist, null) }
                     }
-                    FloatingActionButton(onClick = { expanded = !expanded }) {
-                        Icon(Icons.Default.Add, null)
+                    FloatingActionButton(
+                        onClick = { expanded = !expanded },
+                        contentColor = MaterialTheme.colorScheme.secondaryContainer,
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        ) { Icon(Icons.Default.Add, null)
                     }
                 }
             }
@@ -171,23 +169,33 @@ fun HomeScreen(
         ) {
 
             if (!selectionMode) {
-                Row() {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = viewModel::updateSearch,
+                        modifier = Modifier.weight(1f),
                         singleLine = true,
                         textStyle = LocalTextStyle.current.copy(
                             lineHeight = 35.sp
                         ),
                         placeholder = { Text("Search") },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(35.dp)) },
                     )
 
-                    IconButton(onClick = { viewModel.toggleSortByDate() }) {
+                    IconButton(
+                        onClick = { viewModel.toggleSortByDate() },
+                        modifier = Modifier.size(56.dp),
+                    ) {
                         Icon(Icons.Default.Sort, null)
                     }
 
-                    IconButton(onClick = { viewModel.toggleSortByAlphabet() }) {
+                    IconButton(
+                        onClick = { viewModel.toggleSortByAlphabet() },
+                        modifier = Modifier.size(56.dp),
+                    ) {
                         Icon(Icons.Default.SortByAlpha, null)
                     }
                 }

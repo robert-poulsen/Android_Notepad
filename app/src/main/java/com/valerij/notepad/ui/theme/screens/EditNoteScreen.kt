@@ -11,6 +11,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults.contentPadding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
@@ -127,88 +128,103 @@ fun EditNoteScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { TextField(
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(72.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = {
+                        isLeavingScreen = true
+                        saveAndExit()
+                    }
+                ) {
+                    Icon(Icons.Default.ArrowBack, null)
+                }
+
+                TextField(
                     value = title,
                     onValueChange = { title = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(
-                        "Title",
-                        style = textStyleLarge) },
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            "Title",
+                            style = textStyleLarge,
+                        ) },
                     singleLine = true,
-                    textStyle = textStyleLarge,
-                )},
-                navigationIcon = {
-                    IconButton(onClick = {
+                    textStyle = textStyleLarge,)
+
+                IconButton(
+                    onClick = {
                         isLeavingScreen = true
                         saveAndExit()
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
-                    }) {
-                        Icon(Icons.Default.Save, contentDescription = null)
+                ) {
+                    Icon(Icons.Default.Save, null)
+                }
+
+                IconButton(
+                    onClick = {
+                        showDeleteDialog = true
                     }
+                ) {
+                    Icon(Icons.Default.Delete, null)
+                }
+            }
 
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                    }
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showDeleteDialog = false
+                    },
+                    title = { Text(
+                        text = "Delete note?",
+                        style = Typography.bodyLarge
+                    )},
+                    text = { Text(
+                        text = "Are you sure you want to delete this note?",
+                        style = Typography.bodyMedium
+                    )},
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (noteId == null){
+                                    isLeavingScreen = true
 
-                    if (showDeleteDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                showDeleteDialog = false
-                            },
-                            title = { Text(
-                                text = "Delete note?",
-                                style = Typography.bodyLarge
-                            )},
-                            text = { Text(
-                                text = "Are you sure you want to delete this note?",
-                                style = Typography.bodyMedium
-                            )},
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        if (noteId == null){
-                                            isLeavingScreen = true
+                                    showDeleteDialog = false
+                                    navController.popBackStack()
+                                } else {
+                                    isLeavingScreen = true
 
-                                            showDeleteDialog = false
-                                            navController.popBackStack()
-                                        } else {
-                                            isLeavingScreen = true
-
-                                            scope.launch {
-                                                viewModel.getNote(noteId!!)?.let {
-                                                    viewModel.deleteNote(it)
-                                                }
-                                                showDeleteDialog = false
-                                                navController.popBackStack()
-                                            }
+                                    scope.launch {
+                                        viewModel.getNote(noteId!!)?.let {
+                                            viewModel.deleteNote(it)
                                         }
-                                    }
-                                ) {
-                                    Text("Yes")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = {
                                         showDeleteDialog = false
+                                        navController.popBackStack()
                                     }
-                                ) {
-                                    Text("No")
                                 }
                             }
-                        )
+                        ) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteDialog = false
+                            }
+                        ) {
+                            Text("No")
+                        }
                     }
-                }
-            )
+                )
+            }
         }
+
     ) { padding ->
 
         Column(

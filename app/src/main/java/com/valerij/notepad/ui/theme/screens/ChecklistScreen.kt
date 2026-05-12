@@ -3,7 +3,6 @@ package com.valerij.notepad.ui.theme.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -34,6 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
@@ -171,99 +171,96 @@ fun ChecklistScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    TextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Title") },
-                        singleLine = true,
-                        textStyle = Typography.bodyLarge,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(72.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
+                    isLeavingScreen = true
+                    saveAndExit()
+                }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = null)
+                }
+
+                TextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Title") },
+                    singleLine = true,
+                    textStyle = Typography.bodyLarge,)
+
+                IconButton(onClick = {
+                    items.add(ChecklistItem("", false))
+                    focusIndex = items.lastIndex
+                }) {
+                    Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
+                }
+
+                IconButton(onClick = {
+                    isLeavingScreen = true
+                    saveAndExit()
+                }) {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                }
+
+                IconButton(onClick = { showDeleteDialog = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                }
+            }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = {
+                        Text(
+                            text = "Delete note?",
+                            style = Typography.bodyLarge
                         )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        items.add(ChecklistItem("", false))
-                        focusIndex = items.lastIndex
-                    }) {
-                        Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
-                    }
-
-                    IconButton(onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
-                    }) {
-                        Icon(Icons.Default.Save, contentDescription = null)
-                    }
-
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                    }
-
-                    if (showDeleteDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showDeleteDialog = false },
-                            title = {
-                                Text(
-                                    text = "Delete note?",
-                                    style = Typography.bodyLarge
-                                )
-                            },
-                            text = {
-                                Text(
-                                    text = "Are you sure you want to delete this note?",
-                                    style = Typography.bodyMedium
-                                )
-                            },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        if (noteId == null) {
-                                            isLeavingScreen = true
-                                            showDeleteDialog = false
-                                            navController.popBackStack()
-                                        } else {
-                                            isLeavingScreen = true
-                                            scope.launch {
-                                                viewModel.getNote(noteId!!)?.let {
-                                                    viewModel.deleteNote(it)
-                                                }
-                                                showDeleteDialog = false
-                                                navController.popBackStack()
-                                            }
+                    },
+                    text = {
+                        Text(
+                            text = "Are you sure you want to delete this note?",
+                            style = Typography.bodyMedium
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (noteId == null) {
+                                    isLeavingScreen = true
+                                    showDeleteDialog = false
+                                    navController.popBackStack()
+                                } else {
+                                    isLeavingScreen = true
+                                    scope.launch {
+                                        viewModel.getNote(noteId!!)?.let {
+                                            viewModel.deleteNote(it)
                                         }
-                                    }
-                                ) {
-                                    Text("Yes")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = {
                                         showDeleteDialog = false
-                                    })
-                                {
-                                    Text("No")
+                                        navController.popBackStack()
+                                    }
                                 }
                             }
-                        )
+                        ) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteDialog = false
+                            })
+                        {
+                            Text("No")
+                        }
                     }
-                })
+                )
+            }
         }) { padding ->
         Column(
             modifier = Modifier
@@ -393,7 +390,8 @@ fun ChecklistScreen(
                             color =
                                 if (item.checked)
                                     Color.Gray
-                                else LocalContentColor.current
+                                else LocalContentColor.current,
+                            lineHeight = 35.sp
                         ),
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Next

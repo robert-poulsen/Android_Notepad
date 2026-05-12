@@ -12,31 +12,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = darkGreen,
-    secondary = Green0,
-    tertiary = Orange2,
     background = backgroundDark,
+    primary = textDark,
+    secondary = buttonDark,
+    secondaryContainer = buttonContentDark,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = darkGreen,
-    secondary = Green0,
-    tertiary = Orange2,
-    background = background,
+
 )
 
 @Composable
 fun NotepadTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+//        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+//            val context = LocalContext.current
+//            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+//        }
 
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
