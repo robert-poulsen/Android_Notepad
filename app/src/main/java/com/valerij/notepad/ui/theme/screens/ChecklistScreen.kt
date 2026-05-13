@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -68,6 +69,7 @@ fun ChecklistScreen(
     var isLeavingScreen by remember { mutableStateOf(false) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var totalDragY by remember { mutableStateOf(0f) }
+    var menuExpanded by remember { mutableStateOf(false) }
     val itemHeights = remember { mutableStateMapOf<Int, Float>() }
     val focusManager = LocalFocusManager.current
     val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
@@ -83,8 +85,8 @@ fun ChecklistScreen(
 
         val content = items.joinToString("\n") {
             if (it.checked)
-                "[x] ${it.text}"
-            else "[ ] ${it.text}"
+                "☑ ${it.text}"
+            else "☐ ${it.text}"
         }
         return NoteEntity(
             id = currentId,
@@ -134,13 +136,13 @@ fun ChecklistScreen(
                 items.clear()
                 note.content.split("\n").forEach {
                     when {
-                        it.startsWith("[x] ") ->
+                        it.startsWith("☑ ") ->
                             items.add(
-                                ChecklistItem(it.removePrefix("[x] "), true)
+                                ChecklistItem(it.removePrefix("☑ "), true)
                             )
 
-                        it.startsWith("[ ] ") ->
-                            items.add(ChecklistItem(it.removePrefix("[ ] "), false))
+                        it.startsWith("☐ ") ->
+                            items.add(ChecklistItem(it.removePrefix("☐ "), false))
                     }
                 }
             }
@@ -191,25 +193,70 @@ fun ChecklistScreen(
                     onValueChange = { title = it },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Title") },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
                     singleLine = true,
                     textStyle = Typography.bodyLarge,)
 
-                IconButton(onClick = {
-                    items.add(ChecklistItem("", false))
-                    focusIndex = items.lastIndex
-                }) {
-                    Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
-                }
+                Box {
+                    IconButton(
+                        onClick = {
+                            menuExpanded = true
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = null
+                        )
+                    }
 
-                IconButton(onClick = {
-                    isLeavingScreen = true
-                    saveAndExit()
-                }) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = {
+                            menuExpanded = false
+                        }
+                    ) {
 
-                IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
+                        DropdownMenuItem(
+                            text = { Text("Add task") },
+                            onClick = {
+
+                                val insertIndex =
+                                    items.indexOfFirst { it.checked }
+                                        .takeIf { it != -1 }
+                                        ?: items.size
+
+                                items.add(
+                                    insertIndex,
+                                    ChecklistItem("", false)
+                                )
+
+                                focusIndex = insertIndex
+                                menuExpanded = false
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Save") },
+                            onClick = {
+                                menuExpanded = false
+                                isLeavingScreen = true
+                                saveAndExit()
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                menuExpanded = false
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
                 }
             }
 
@@ -269,8 +316,20 @@ fun ChecklistScreen(
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-        )
-        {
+        ) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                gapSize = 0.dp,
+                drawStopIndicator = {}
+            )
+            Text(
+                text = "${items.count { it.checked }} of ${items.size} completed",
+                style = Typography.bodySmall
+            )
+
             items.forEachIndexed { index, item ->
                 val focusRequester = remember { FocusRequester() }
 
@@ -346,7 +405,7 @@ fun ChecklistScreen(
                         checked = item.checked,
                         onCheckedChange = {
                             items[index] = item.copy(checked = !item.checked)
-                            items.sortBy { it.checked }
+                         //   items.sortBy { it.checked }
                         })
 
                     TextField(
@@ -383,6 +442,13 @@ fun ChecklistScreen(
                                     false
                                 }
                             },
+                        placeholder = { Text("Task") },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
                         textStyle = LocalTextStyle.current.copy(
                             textDecoration =
                                 if (item.checked) TextDecoration.LineThrough
@@ -415,16 +481,6 @@ fun ChecklistScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            LinearProgressIndicator(
-                progress = progress,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            )
-            Text(
-                text = "${items.count { it.checked }} / ${items.size} completed",
-                style = Typography.bodySmall
-            )
         }
     }
 }
