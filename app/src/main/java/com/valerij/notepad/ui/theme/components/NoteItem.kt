@@ -1,19 +1,21 @@
 package com.valerij.notepad.ui.theme.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.valerij.notepad.data.local.NoteEntity
+import com.valerij.notepad.ui.theme.screens.ChecklistItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,7 +28,6 @@ fun NoteItem(
     isSelected: Boolean,
     onLongClick: () -> Unit,
 ) {
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -71,11 +72,9 @@ fun NoteItem(
                     onLongClick = onLongClick
                 )
         ) {
-
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-
                 Text(
                     text =
                         if (note.title.isBlank()) {
@@ -96,8 +95,7 @@ fun NoteItem(
 
                 Text(
                     text = note.content,
-
-                    maxLines = 2,
+                    maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
 
                     style = MaterialTheme.typography.bodySmall
