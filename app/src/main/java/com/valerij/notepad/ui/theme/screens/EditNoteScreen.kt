@@ -85,7 +85,7 @@ fun EditNoteScreen(
     DisposableEffect(lifecycleOwner) {
 
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen) {
+            if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen && (title.isNotBlank() && content.isNotBlank())) {
                 scope.launch {
                     viewModel.saveNote(buildNote())
                 }
