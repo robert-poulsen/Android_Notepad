@@ -316,9 +316,7 @@ fun ChecklistScreen(
                     placeholder = {
                         Text("Title")
                     },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor =
-                            Color.Transparent,
+                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
 
                         unfocusedContainerColor =
                             Color.Transparent,
