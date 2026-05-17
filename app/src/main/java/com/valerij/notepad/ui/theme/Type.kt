@@ -24,7 +24,7 @@ val Typography = Typography(
     ),
     bodyMedium = TextStyle(
         fontFamily = Manrope,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 25.sp,
         lineHeight = 30.sp,
         letterSpacing = 0.sp

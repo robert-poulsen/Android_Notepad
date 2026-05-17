@@ -155,6 +155,12 @@ fun EditNoteScreen(
                             style = textStyleLarge,
                         ) },
                     singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.background,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.background,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.background
+                    ),
                     textStyle = textStyleLarge,)
 
                 IconButton(
@@ -242,6 +248,12 @@ fun EditNoteScreen(
                     text = "Text here",
                     style = textStyleMedium,
                 ) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.background,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.background,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.background
+                ),
                 textStyle = textStyleMedium,
             )
         }

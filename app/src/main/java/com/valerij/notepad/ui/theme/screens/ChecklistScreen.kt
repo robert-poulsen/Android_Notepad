@@ -51,6 +51,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.valerij.notepad.ui.theme.textDark
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
@@ -316,16 +317,12 @@ fun ChecklistScreen(
                     placeholder = {
                         Text("Title")
                     },
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
-
-                        unfocusedContainerColor =
-                            Color.Transparent,
-
-                        focusedIndicatorColor =
-                            Color.Transparent,
-
-                        unfocusedIndicatorColor =
-                            Color.Transparent
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.background,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.background,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.background
                     ),
                     singleLine = true
                 )
@@ -522,7 +519,7 @@ fun ChecklistScreen(
                             .background(
                                 MaterialTheme
                                     .colorScheme
-                                    .surface
+                                    .background
                             )
                     )
                 }
@@ -606,7 +603,7 @@ fun ChecklistScreen(
                                     .background(
                                         MaterialTheme
                                             .colorScheme
-                                            .surface
+                                            .background
                                     )
                             )
                         }
