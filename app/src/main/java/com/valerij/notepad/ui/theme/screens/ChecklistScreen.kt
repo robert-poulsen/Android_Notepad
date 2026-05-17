@@ -3,16 +3,14 @@ package com.valerij.notepad.ui.theme.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
@@ -21,17 +19,15 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
@@ -39,20 +35,20 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.input.key.*
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
 import androidx.lifecycle.Lifecycle
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
@@ -88,6 +84,7 @@ fun ChecklistScreen(
     var isLeavingScreen by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val listState = rememberLazyListState()
     val reorderableLazyListState =
         rememberReorderableLazyListState(
@@ -147,16 +144,7 @@ fun ChecklistScreen(
             newItem
         )
 
-        scope.launch {
-
-            delay(100)
-
-            focusItemId = newItem.id
-
-            listState.animateScrollToItem(
-                insertIndex + 1
-            )
-        }
+        focusItemId = newItem.id
     }
 
     fun buildNote(): NoteEntity {
@@ -185,19 +173,10 @@ fun ChecklistScreen(
     }
 
     fun saveAndExit() {
-
-        if (
-            title.isBlank() &&
-            items.all { it.text.isBlank() }
-        ) {
-
+        if (title.isBlank() && items.all {it.text.isBlank()}){
             navController.popBackStack()
-            return
-
         } else {
-
             scope.launch {
-
                 viewModel.saveNote(buildNote())
                 navController.popBackStack()
             }
@@ -205,21 +184,19 @@ fun ChecklistScreen(
     }
 
     BackHandler {
+        isLeavingScreen = true
         saveAndExit()
     }
 
     DisposableEffect(lifecycleOwner) {
 
-        val observer =
-            LifecycleEventObserver { _, event ->
-
-                if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen) {
-
-                    scope.launch {
-                        viewModel.saveNote(buildNote())
-                    }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen && (title.isNotBlank() && items.all {it.text.isNotBlank()})) {
+                scope.launch {
+                    viewModel.saveNote(buildNote())
                 }
             }
+        }
 
         lifecycleOwner.lifecycle.addObserver(observer)
 
@@ -228,6 +205,11 @@ fun ChecklistScreen(
         }
     }
 
+    LaunchedEffect(keyboardVisible) {
+        if (!keyboardVisible) {
+            focusManager.clearFocus()
+        }
+    }
 
     LaunchedEffect(noteId) {
 
@@ -310,6 +292,7 @@ fun ChecklistScreen(
 
                 IconButton(
                     onClick = {
+                        isLeavingScreen = true
                         saveAndExit()
                     }
                 ) {
@@ -394,10 +377,25 @@ fun ChecklistScreen(
                                 Text("Pin")
                             },
                             onClick = {
+                                if (noteId == null){
+                                        isLeavingScreen = true
+
+                                        showDeleteDialog = false
+                                        navController.popBackStack()
+                                } else {
+                                        isLeavingScreen = true
+
+                                        scope.launch {
+                                            viewModel.getNote(noteId!!)?.let {
+                                                viewModel.deleteNote(it)
+                                            }
+                                            showDeleteDialog = false
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                viewModel.togglePin(note.id)
 
                                 menuExpanded = false
-
-                                showDeleteDialog = true
                             }
                         )
 
@@ -406,7 +404,7 @@ fun ChecklistScreen(
                                 Text("Save")
                             },
                             onClick = {
-
+                                isLeavingScreen = true
                                 saveAndExit()
 
                                 menuExpanded = false
@@ -473,7 +471,8 @@ fun ChecklistScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .imePadding(),
-            contentPadding = PaddingValues(16.dp)
+            contentPadding = PaddingValues(16.dp),
+            reverseLayout = false
         ) {
 
             item {
@@ -502,13 +501,18 @@ fun ChecklistScreen(
                         item = item,
                         items = items,
                         focusItemId = focusItemId,
+                        focusManager = focusManager,
+                        dragHandleModifier = Modifier.draggableHandle(),
                         onFocusItemChange = {
                             focusItemId = it
                         },
                         onFocusConsumed = {
                             focusItemId = null
                         },
+                        listState = listState,
                         modifier = Modifier
+                            .animateItem()
+                            .clip(RoundedCornerShape(16.dp))
                             .shadow(
                                 elevation =
                                     if (isDragging)
@@ -521,7 +525,6 @@ fun ChecklistScreen(
                                     .colorScheme
                                     .surface
                             )
-                            .draggableHandle()
                     )
                 }
 
@@ -582,13 +585,18 @@ fun ChecklistScreen(
                                 item = item,
                                 items = items,
                                 focusItemId = focusItemId,
+                                focusManager = focusManager,
+                                dragHandleModifier = Modifier.draggableHandle(),
                                 onFocusItemChange = {
                                     focusItemId = it
                                 },
                                 onFocusConsumed = {
                                     focusItemId = null
                                 },
+                                listState = listState,
                                 modifier = Modifier
+                                    .animateItem()
+                                    .clip(RoundedCornerShape(16.dp))
                                     .shadow(
                                         elevation =
                                             if (isDragging)
@@ -601,7 +609,6 @@ fun ChecklistScreen(
                                             .colorScheme
                                             .surface
                                     )
-                                    .draggableHandle()
                             )
                         }
 
@@ -619,54 +626,50 @@ fun ChecklistScreen(
 fun ChecklistRow(
     item: ChecklistItem,
     items: SnapshotStateList<ChecklistItem>,
+    listState: LazyListState,
     focusItemId: String?,
     onFocusItemChange: (String?) -> Unit,
     onFocusConsumed: () -> Unit,
+    focusManager: FocusManager,
+    dragHandleModifier: Modifier = Modifier,
     modifier: Modifier = Modifier
 ) {
 
-    val focusRequester =
-        remember {
-            FocusRequester()
-        }
+    val focusRequester = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(focusItemId) {
-
         if (focusItemId == item.id) {
 
-            focusRequester.requestFocus()
+            val index = items.indexOfFirst { it.id == item.id }
+            if (index != -1) {
+                listState.animateScrollToItem( index = index + 1)
+            }
 
+            focusRequester.requestFocus()
             onFocusConsumed()
         }
     }
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment =
-            Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
         Icon(
             Icons.Default.DragIndicator,
             contentDescription = null,
-            tint =
-                MaterialTheme
-                    .colorScheme
-                    .outline,
-            modifier = Modifier.padding(8.dp)
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = dragHandleModifier
+                .padding(8.dp)
         )
 
         Checkbox(
             checked = item.checked,
             onCheckedChange = {
 
-                val index =
-                    items.indexOfFirst {
-                        it.id == item.id
-                    }
+                val index = items.indexOfFirst { it.id == item.id }
 
                 if (index != -1) {
-
                     items[index] =
                         item.copy(
                             checked = !item.checked
@@ -680,28 +683,18 @@ fun ChecklistRow(
 
             onValueChange = { text ->
 
-                val index =
-                    items.indexOfFirst {
-                        it.id == item.id
-                    }
+                val index = items.indexOfFirst { it.id == item.id }
 
-                if (index != -1) {
-
-                    items[index] =
-                        item.copy(
-                            text = text
-                        )
+                if (index == -1) {
+                    return@TextField
                 }
+
+                items[index] = item.copy(text = text)
             },
             keyboardActions = KeyboardActions(
-
                 onNext = {
-
                     val insertIndex =
-                        items.indexOfLast {
-                            !it.checked
-                        }.let {
-
+                        items.indexOfLast { !it.checked }.let {
                             if (it == -1)
                                 0
                             else
@@ -725,62 +718,79 @@ fun ChecklistRow(
 
             modifier = Modifier
                 .weight(1f)
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .onPreviewKeyEvent { event ->
+
+                    if (
+                        event.type == KeyEventType.KeyDown &&
+                        event.key == Key.Backspace &&
+                        item.text.isEmpty()
+                    ) {
+
+                        val index =
+                            items.indexOfFirst {
+                                it.id == item.id
+                            }
+
+                        if (
+                            index != -1 &&
+                            items.size > 1
+                        ) {
+
+                            items.removeAt(index)
+
+                            val previousIndex =
+                                (index - 1)
+                                    .coerceAtLeast(0)
+
+                            onFocusItemChange(
+                                items[previousIndex].id
+                            )
+                        }
+
+                        true
+                    } else {
+                        false
+                    }
+                },
 
             placeholder = {
                 Text("Task")
             },
 
             colors = TextFieldDefaults.colors(
-                focusedContainerColor =
-                    Color.Transparent,
-
-                unfocusedContainerColor =
-                    Color.Transparent,
-
-                focusedIndicatorColor =
-                    Color.Transparent,
-
-                unfocusedIndicatorColor =
-                    Color.Transparent
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
             ),
 
-            textStyle =
-                LocalTextStyle.current.copy(
+            textStyle = LocalTextStyle.current.copy(
+                textDecoration =
+                    if (item.checked)
+                        TextDecoration.LineThrough
+                    else
+                        TextDecoration.None,
 
-                    textDecoration =
-                        if (item.checked)
-                            TextDecoration.LineThrough
-                        else
-                            TextDecoration.None,
-
-                    color =
-                        if (item.checked)
-                            Color.Gray
-                        else
-                            LocalContentColor.current),
+                color =
+                    if (item.checked)
+                        Color.Gray
+                    else
+                        LocalContentColor.current),
 
             singleLine = true,
-
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Next
-            )
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
 
         IconButton(
             onClick = {
-
-                val index =
-                    items.indexOfFirst {
-                        it.id == item.id
-                    }
+                val index = items.indexOfFirst { it.id == item.id }
 
                 if (index != -1) {
-
+                    focusManager.clearFocus(force = true)
                     items.removeAt(index)
 
                     if (items.isEmpty()) {
-
                         items.add(
                             ChecklistItem(
                                 text = "",
@@ -789,6 +799,7 @@ fun ChecklistRow(
                         )
                     }
                 }
+
             }
         ) {
 
