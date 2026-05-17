@@ -86,6 +86,7 @@ fun ChecklistScreen(
     val focusManager = LocalFocusManager.current
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val listState = rememberLazyListState()
+    var pinned by remember { mutableStateOf(false) }
     val reorderableLazyListState =
         rememberReorderableLazyListState(
             lazyListState = listState,
@@ -168,6 +169,7 @@ fun ChecklistScreen(
                     ?: "No title"
             },
             content = content,
+            pinned = pinned,
             checklist = true
         )
     }
@@ -219,6 +221,8 @@ fun ChecklistScreen(
                 ?.let { note ->
 
                     title = note.title
+
+                    pinned = note.pinned
 
                     items.clear()
 
@@ -374,26 +378,23 @@ fun ChecklistScreen(
 
                         DropdownMenuItem(
                             text = {
-                                Text("Pin")
+                                Text(
+                                    if (pinned)
+                                        "Unpin"
+                                    else
+                                        "Pin"
+                                )
                             },
                             onClick = {
-                                if (noteId == null){
-                                        isLeavingScreen = true
 
-                                        showDeleteDialog = false
-                                        navController.popBackStack()
-                                } else {
-                                        isLeavingScreen = true
+                                pinned = !pinned
 
-                                        scope.launch {
-                                            viewModel.getNote(noteId!!)?.let {
-                                                viewModel.deleteNote(it)
-                                            }
-                                            showDeleteDialog = false
-                                            navController.popBackStack()
-                                        }
-                                    }
-                                viewModel.togglePin(note.id)
+                                scope.launch {
+
+                                    viewModel.togglePin(
+                                        buildNote().id
+                                    )
+                                }
 
                                 menuExpanded = false
                             }
@@ -737,15 +738,21 @@ fun ChecklistRow(
                             items.size > 1
                         ) {
 
-                            items.removeAt(index)
-
                             val previousIndex =
                                 (index - 1)
                                     .coerceAtLeast(0)
 
-                            onFocusItemChange(
+                            val previousItemId =
                                 items[previousIndex].id
-                            )
+
+                            onFocusItemChange(previousItemId)
+
+                            scope.launch {
+
+                                delay(50)
+
+                                items.removeAt(index)
+                            }
                         }
 
                         true
@@ -787,7 +794,7 @@ fun ChecklistRow(
                 val index = items.indexOfFirst { it.id == item.id }
 
                 if (index != -1) {
-                    focusManager.clearFocus(force = true)
+//                    focusManager.clearFocus(force = true)
                     items.removeAt(index)
 
                     if (items.isEmpty()) {
