@@ -639,7 +639,7 @@ fun ChecklistRow(
 
             val index = items.indexOfFirst { it.id == item.id }
             if (index != -1) {
-                listState.animateScrollToItem( index = index + 1)
+                listState.scrollToItem(index + 1)
             }
 
             focusRequester.requestFocus()
