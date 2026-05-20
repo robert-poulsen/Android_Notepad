@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.material3.OutlinedTextFieldDefaults.contentPadding
@@ -41,6 +42,8 @@ fun EditNoteScreen(
     var pinnedNote by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isLeavingScreen by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var pinned by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
@@ -62,7 +65,7 @@ fun EditNoteScreen(
             title = finalTitle,
             content = content,
             checklist = false,
-            pinned = pinnedNote,
+            pinned = pinned,
         )
     }
 
@@ -110,7 +113,7 @@ fun EditNoteScreen(
             viewModel.getNote(noteId)?.let { note ->
                 title = note.title
                 content = note.content
-                pinnedNote = note.pinned
+                pinned = note.pinned
             }
         }
         loaded = true
@@ -161,23 +164,74 @@ fun EditNoteScreen(
                         focusedIndicatorColor = MaterialTheme.colorScheme.background,
                         unfocusedIndicatorColor = MaterialTheme.colorScheme.background
                     ),
-                    textStyle = textStyleLarge,)
+                    textStyle = textStyleLarge,
+                )
 
-                IconButton(
-                    onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
-                    }
-                ) {
-                    Icon(Icons.Default.Save, null)
-                }
+                Box {
+                    IconButton(
+                        onClick = {
+                            menuExpanded = true
+                        }
+                    ) {
 
-                IconButton(
-                    onClick = {
-                        showDeleteDialog = true
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = null
+                        )
                     }
-                ) {
-                    Icon(Icons.Default.Delete, null)
+
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = {
+                            menuExpanded = false
+                        }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text("Delete")
+                            },
+                            onClick = {
+
+                                menuExpanded = false
+
+                                showDeleteDialog = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (pinned)
+                                        "Unpin"
+                                    else
+                                        "Pin"
+                                )
+                            },
+                            onClick = {
+
+                                pinned = !pinned
+
+                                scope.launch {
+
+                                    viewModel.togglePin(
+                                        buildNote().id
+                                    )
+                                }
+
+                                menuExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text("Save")
+                            },
+                            onClick = {
+                                isLeavingScreen = true
+                                saveAndExit()
+
+                                menuExpanded = false
+                            }
+                        )
+                    }
                 }
             }
 

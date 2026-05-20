@@ -49,6 +49,8 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.valerij.notepad.ui.theme.textDark
@@ -633,6 +635,14 @@ fun ChecklistRow(
 
     val focusRequester = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
+    var textFieldValue by remember(item.id) {
+        mutableStateOf(
+            TextFieldValue(
+                text = item.text,
+                selection = TextRange(item.text.length)
+            )
+        )
+    }
 
     LaunchedEffect(focusItemId) {
         if (focusItemId == item.id) {
@@ -675,17 +685,18 @@ fun ChecklistRow(
         )
 
         TextField(
-            value = item.text,
+            value = textFieldValue,
 
-            onValueChange = { text ->
+            onValueChange = { value ->
+
+                textFieldValue = value
 
                 val index = items.indexOfFirst { it.id == item.id }
 
-                if (index == -1) {
-                    return@TextField
-                }
-
-                items[index] = item.copy(text = text)
+                if (index == -1) return@TextField
+                items[index] = item.copy(
+                    text = value.text
+                )
             },
             keyboardActions = KeyboardActions(
                 onNext = {
