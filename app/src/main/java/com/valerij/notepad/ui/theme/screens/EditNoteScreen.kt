@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -49,6 +50,7 @@ fun EditNoteScreen(
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val textStyleMedium = MaterialTheme.typography.bodyMedium
     val textStyleLarge = MaterialTheme.typography.bodyLarge
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     fun buildNote(): NoteEntity {
         val finalTitle =
@@ -141,8 +143,12 @@ fun EditNoteScreen(
             ) {
                 IconButton(
                     onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
+                        if(keyboardVisible){
+                            keyboardController?.hide()
+                        } else {
+                            isLeavingScreen = true
+                            saveAndExit()
+                        }
                     }
                 ) {
                     Icon(Icons.Default.ArrowBack, null)
@@ -211,7 +217,6 @@ fun EditNoteScreen(
                                 pinned = !pinned
 
                                 scope.launch {
-
                                     viewModel.togglePin(
                                         buildNote().id
                                     )

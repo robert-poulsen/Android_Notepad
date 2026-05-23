@@ -46,27 +46,9 @@ fun NoteItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        IconButton(
-            modifier = Modifier.size(52.dp),
-            onClick = { onPinClick() }
-        ) {
-            Icon(
-                imageVector = Icons.Default.PushPin,
-                contentDescription = null,
-
-                modifier = Modifier.size(28.dp),
-
-                tint = if (note.pinned)
-                    MaterialTheme.colorScheme.inversePrimary
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick
@@ -75,27 +57,41 @@ fun NoteItem(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                Text(
-                    text =
-                        if (note.title.isBlank()) {
-                            note.content
-                        } else {
-                            note.title
-                        },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text =
+                            if (note.title.isBlank()) {
+                                note.content
+                            } else {
+                                note.title
+                            },
 
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
 
-                    style = MaterialTheme.typography.bodyMedium,
-
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                    if (note.pinned) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = null,
+                            modifier = Modifier.size(30.dp),
+                            tint = MaterialTheme.colorScheme.inversePrimary
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = note.content,
-                    maxLines = 4,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
 
                     style = MaterialTheme.typography.bodySmall
@@ -110,7 +106,6 @@ fun NoteItem(
                     ).format(Date(note.createdAt)),
 
                     style = MaterialTheme.typography.bodySmall,
-
                     color = MaterialTheme.colorScheme.tertiary
                 )
             }

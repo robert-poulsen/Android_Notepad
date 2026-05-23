@@ -49,6 +49,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.LifecycleEventObserver
@@ -88,6 +89,7 @@ fun ChecklistScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val keyboardController = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
     var pinned by remember { mutableStateOf(false) }
     val reorderableLazyListState =
@@ -299,8 +301,12 @@ fun ChecklistScreen(
 
                 IconButton(
                     onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
+                        if(keyboardVisible){
+                            keyboardController?.hide()
+                        } else {
+                            isLeavingScreen = true
+                            saveAndExit()
+                        }
                     }
                 ) {
 
@@ -700,13 +706,13 @@ fun ChecklistRow(
             },
             keyboardActions = KeyboardActions(
                 onNext = {
-                    val insertIndex =
-                        items.indexOfLast { !it.checked }.let {
-                            if (it == -1)
-                                0
-                            else
-                                it + 1
+
+                    val currentIndex =
+                        items.indexOfFirst {
+                            it.id == item.id
                         }
+
+                    if (currentIndex == -1) return@KeyboardActions
 
                     val newItem =
                         ChecklistItem(
@@ -715,7 +721,7 @@ fun ChecklistRow(
                         )
 
                     items.add(
-                        insertIndex,
+                        currentIndex + 1,
                         newItem
                     )
 

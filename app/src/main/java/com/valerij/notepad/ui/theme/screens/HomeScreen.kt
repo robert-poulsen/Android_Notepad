@@ -1,6 +1,15 @@
 package com.valerij.notepad.ui.theme.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -17,6 +26,7 @@ import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,6 +34,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -57,6 +68,11 @@ fun HomeScreen(
     val sortType by viewModel.sortType.collectAsState()
     val focusManager = LocalFocusManager.current
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val rotation by animateFloatAsState(targetValue = if (expanded) -45f else 0f, label = "")
+    val noteOffsetX by animateDpAsState(targetValue = if (expanded) (-15).dp else 0.dp, label = "")
+    val noteOffsetY by animateDpAsState(targetValue = if (expanded) (-70).dp else 0.dp, label = "")
+    val checklistOffsetX by animateDpAsState(targetValue = if (expanded) (-70).dp else 0.dp, label = "")
+    val checklistOffsetY by animateDpAsState(targetValue = if (expanded) (-15).dp else 0.dp, label = "")
 
     val sortedNotes = remember(notes, sortType) {
 
@@ -113,6 +129,16 @@ fun HomeScreen(
                     },
                     actions = {
                         IconButton(onClick = {
+                            selectedNotes.toList().forEach {  noteId ->
+                                viewModel.togglePin(noteId)
+                            }
+                            selectedNotes.clear()
+                            selectionMode = false
+                        }) {
+                            Icon(Icons.Default.PushPin, null)
+                        }
+
+                        IconButton(onClick = {
                             showDeleteDialog = true
                         }) {
                             Icon(Icons.Default.Delete, null)
@@ -127,34 +153,78 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomEnd
                 ){
-                    if (expanded) {
+                    androidx.compose.animation.AnimatedVisibility (
+                        visible = expanded,
+
+                        enter = fadeIn() + scaleIn(
+                            animationSpec = spring(
+                                dampingRatio = 0.7f,
+                                stiffness = 500f
+                            )
+                        ),
+
+                        exit = fadeOut() + scaleOut()
+                    ) {
+
                         FloatingActionButton(
                             onClick = {
                                 expanded = false
                                 navController.navigate("editNoteScreen")
                             },
-                            modifier = Modifier.offset(x = (-15).dp, y = (-70).dp),
+
+                            modifier = Modifier.offset(
+                                x = noteOffsetX,
+                                y = noteOffsetY
+                            ),
+
                             shape = CircleShape,
                             containerColor = MaterialTheme.colorScheme.secondary,
                             contentColor = MaterialTheme.colorScheme.secondaryContainer,
-                        ) { Icon(Icons.Default.Notes, null) }
+                        ) {
+                            Icon(Icons.Default.Notes, null)
+                        }
+                    }
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = expanded,
+                        enter = fadeIn() + scaleIn(
+                            animationSpec = spring(
+                                dampingRatio = 0.7f,
+                                stiffness = 500f
+                            )
+                        ),
+
+                        exit = fadeOut() + scaleOut()
+                    ) {
 
                         FloatingActionButton(
                             onClick = {
                                 expanded = false
                                 navController.navigate("checklistScreen")
                             },
-                            modifier = Modifier.offset(x = (-70).dp, y = (-15).dp),
+
+                            modifier = Modifier.offset(
+                                x = checklistOffsetX,
+                                y = checklistOffsetY
+                            ),
+
                             shape = CircleShape,
                             contentColor = MaterialTheme.colorScheme.secondaryContainer,
                             containerColor = MaterialTheme.colorScheme.secondary,
-                        ) { Icon(Icons.Default.Checklist, null) }
+                        ) {
+                            Icon(Icons.Default.Checklist, null)
+                        }
                     }
                     FloatingActionButton(
                         onClick = { expanded = !expanded },
                         contentColor = MaterialTheme.colorScheme.secondaryContainer,
                         containerColor = MaterialTheme.colorScheme.secondary,
-                        ) { Icon(Icons.Default.Add, null)
+                        ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.rotate(rotation)
+                        )
                     }
                 }
             }
