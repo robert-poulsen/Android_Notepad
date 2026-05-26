@@ -19,12 +19,8 @@ class NotesViewModel(
     }
 
     private val _searchQuery = MutableStateFlow("")
-    private val _sortDesc = MutableStateFlow(true)
-    private val _sortByAlphabet = MutableStateFlow(false)
     private val _sortType = MutableStateFlow(SortType.DATE_DESC)
     val sortType = _sortType.asStateFlow()
-    val sortByAlphabet = _sortByAlphabet.asStateFlow()
-    val sortDesc = _sortDesc.asStateFlow()
     val searchQuery = _searchQuery.asStateFlow()
 
     val notes = searchQuery.flatMapLatest {
@@ -67,19 +63,12 @@ class NotesViewModel(
         }
     }
 
-    fun toggleSortByAlphabet() {
-        _sortType.value = when (_sortType.value) {
-            SortType.TITLE_ASC -> SortType.TITLE_DESC
-            SortType.TITLE_DESC -> SortType.TITLE_ASC
-            else -> SortType.TITLE_ASC
-        }
-    }
-
-    fun toggleSortByDate() {
-        _sortType.value = when (_sortType.value) {
-            SortType.DATE_DESC -> SortType.DATE_ASC
-            SortType.DATE_ASC -> SortType.DATE_DESC
-            else -> SortType.DATE_DESC
+    fun sortNotes(selectedSort: SortType) {
+        _sortType.value = when (selectedSort) {
+            SortType.DATE_ASC -> SortType.DATE_ASC
+            SortType.DATE_DESC -> SortType.DATE_DESC
+            SortType.TITLE_ASC -> SortType.TITLE_ASC
+            SortType.TITLE_DESC -> SortType.TITLE_DESC
         }
     }
 

@@ -2,30 +2,40 @@ package com.valerij.notepad.ui.theme.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.graphics.Color.Companion
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -36,64 +46,143 @@ import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.Typography
 import androidx.lifecycle.Lifecycle
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.util.UUID
 
 data class ChecklistItem(
+    val id: String = UUID.randomUUID().toString(),
     var text: String,
     var checked: Boolean
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalMaterial3Api::class
+)
 @Composable
 fun ChecklistScreen(
     navController: NavController,
     viewModel: NotesViewModel,
     noteId: String?
 ) {
+
     val scope = rememberCoroutineScope()
     var title by remember { mutableStateOf("") }
     val items = remember { mutableStateListOf<ChecklistItem>() }
     var loaded by remember { mutableStateOf(false) }
-    var pinnedNote by remember { mutableStateOf(false) }
+    var completedExpanded by remember { mutableStateOf(true) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var focusItemId by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val currentId = remember { noteId ?: UUID.randomUUID().toString() }
-    var focusIndex by remember { mutableStateOf<Int?>(null) }
     var isLeavingScreen by remember { mutableStateOf(false) }
-    var draggedIndex by remember { mutableStateOf<Int?>(null) }
-    var totalDragY by remember { mutableStateOf(0f) }
-    val itemHeights = remember { mutableStateMapOf<Int, Float>() }
+    val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
-    val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val listState = rememberLazyListState()
+    var pinned by remember { mutableStateOf(false) }
+    val reorderableLazyListState =
+        rememberReorderableLazyListState(
+            lazyListState = listState,
+            onMove = { from, to ->
+                val fromItemId = from.key as String
+                val toItemId = to.key as String
+                val fromItem = items.first { it.id == fromItemId }
+                val toItem = items.first { it.id == toItemId }
+
+                if (fromItem.checked != toItem.checked) {
+                    return@rememberReorderableLazyListState
+                }
+
+                val fromIndex = items.indexOfFirst { it.id == fromItem.id }
+                val toIndex = items.indexOfFirst { it.id == toItem.id }
+
+                if (fromIndex == -1 || toIndex == -1) return@rememberReorderableLazyListState
+
+                items.add(
+                    toIndex,
+                    items.removeAt(fromIndex)
+                )
+            }
+        )
+
+    val activeItems by remember { derivedStateOf { items.filter { !it.checked } } }
+    val completedItems by remember { derivedStateOf { items.filter { it.checked } } }
     val progress =
         if (items.isEmpty()) 0f
-        else items.count { it.checked }.toFloat() / items.size
+        else {
+            items.count { it.checked }
+                .toFloat() / items.size
+        }
+
+    fun addTask() {
+
+        val insertIndex =
+            items.indexOfLast {
+                !it.checked
+            }.let {
+
+                if (it == -1)
+                    0
+                else
+                    it + 1
+            }
+
+        val newItem =
+            ChecklistItem(
+                text = "",
+                checked = false
+            )
+
+        items.add(
+            insertIndex,
+            newItem
+        )
+
+        focusItemId = newItem.id
+    }
 
     fun buildNote(): NoteEntity {
-        val finalTitle =
-            if (title.isBlank())
-                items.firstOrNull()?.text?.take(30) ?: "No name"
-            else title
 
-        val content = items.joinToString("\n") {
-            if (it.checked)
-                "[x] ${it.text}"
-            else "[ ] ${it.text}"
-        }
+        val orderedItems = activeItems + completedItems
+
+        val content =
+            orderedItems.joinToString("\n") {
+
+                if (it.checked)
+                    "☑ ${it.text}"
+                else
+                    "☐ ${it.text}"
+            }
+
         return NoteEntity(
-            id = currentId,
-            title = finalTitle,
+            id = noteId
+                ?: UUID.randomUUID().toString(),
+            title = title.ifBlank {
+                orderedItems.firstOrNull()?.text
+                    ?: "No title"
+            },
             content = content,
-            checklist = true,
-            pinned = pinnedNote
+            pinned = pinned,
+            checklist = true
         )
     }
 
     fun saveAndExit() {
-        if (title.isBlank() && items.all {it.text.isBlank()} ) {
+        if (title.isBlank() && items.all {it.text.isBlank()}){
             navController.popBackStack()
         } else {
             scope.launch {
@@ -109,13 +198,15 @@ fun ChecklistScreen(
     }
 
     DisposableEffect(lifecycleOwner) {
+
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen) {
+            if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen && (title.isNotBlank() && items.all {it.text.isNotBlank()})) {
                 scope.launch {
                     viewModel.saveNote(buildNote())
                 }
             }
         }
+
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
@@ -123,295 +214,645 @@ fun ChecklistScreen(
         }
     }
 
-    LaunchedEffect(noteId) {
-        if (noteId != null) {
-            viewModel.getNote(noteId)?.let { note ->
-                title = note.title
-                pinnedNote = note.pinned
-                items.clear()
-                note.content.split("\n").forEach {
-                    when {
-                        it.startsWith("[x] ") ->
-                            items.add(
-                                ChecklistItem(it.removePrefix("[x] "), true)
-                            )
+    LaunchedEffect(keyboardVisible) {
+        if (!keyboardVisible) {
+            focusManager.clearFocus()
+        }
+    }
 
-                        it.startsWith("[ ] ") ->
-                            items.add(ChecklistItem(it.removePrefix("[ ] "), false))
-                    }
+    LaunchedEffect(noteId) {
+
+        if (noteId != null) {
+
+            viewModel.getNote(noteId)
+                ?.let { note ->
+
+                    title = note.title
+
+                    pinned = note.pinned
+
+                    items.clear()
+
+                    note.content
+                        .split("\n")
+                        .forEach {
+
+                            when {
+
+                                it.startsWith("☑ ") -> {
+
+                                    items.add(
+                                        ChecklistItem(
+                                            text = it.removePrefix("☑ "),
+                                            checked = true
+                                        )
+                                    )
+                                }
+
+                                it.startsWith("☐ ") -> {
+
+                                    items.add(
+                                        ChecklistItem(
+                                            text = it.removePrefix("☐ "),
+                                            checked = false
+                                        )
+                                    )
+                                }
+                            }
+                        }
                 }
-            }
         }
 
         if (items.isEmpty()) {
-            items.add(ChecklistItem("", false))
+
+            items.add(
+                ChecklistItem(
+                    text = "",
+                    checked = false
+                )
+            )
         }
 
         loaded = true
     }
 
-    LaunchedEffect(isKeyboardVisible) {
-        if (!isKeyboardVisible) {
-            focusManager.clearFocus()
-        }
-    }
-
     if (!loaded) {
+
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
+
             CircularProgressIndicator()
         }
+
         return
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    TextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Title") },
-                        singleLine = true,
-                        textStyle = Typography.bodyLarge,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        items.add(ChecklistItem("", false))
-                        focusIndex = items.lastIndex
-                    }) {
-                        Icon(Icons.Default.CheckBoxOutlineBlank, contentDescription = null)
-                    }
 
-                    IconButton(onClick = {
-                        isLeavingScreen = true
-                        saveAndExit()
-                    }) {
-                        Icon(Icons.Default.Save, contentDescription = null)
-                    }
-
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                    }
-
-                    if (showDeleteDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showDeleteDialog = false },
-                            title = {
-                                Text(
-                                    text = "Delete note?",
-                                    style = Typography.bodyLarge
-                                )
-                            },
-                            text = {
-                                Text(
-                                    text = "Are you sure you want to delete this note?",
-                                    style = Typography.bodyMedium
-                                )
-                            },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        if (noteId == null) {
-                                            isLeavingScreen = true
-                                            showDeleteDialog = false
-                                            navController.popBackStack()
-                                        } else {
-                                            isLeavingScreen = true
-                                            scope.launch {
-                                                viewModel.getNote(noteId!!)?.let {
-                                                    viewModel.deleteNote(it)
-                                                }
-                                                showDeleteDialog = false
-                                                navController.popBackStack()
-                                            }
-                                        }
-                                    }
-                                ) {
-                                    Text("Yes")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = {
-                                        showDeleteDialog = false
-                                    })
-                                {
-                                    Text("No")
-                                }
-                            }
-                        )
-                    }
-                })
-        }) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-        )
-        {
-            items.forEachIndexed { index, item ->
-                val focusRequester = remember { FocusRequester() }
-
-                Row(
-                    modifier = Modifier
-                        .background(
-                            if (draggedIndex == index)
-                                Color.LightGray.copy(alpha = 0.2f)
-                            else
-                                Color.Transparent
-                        )
-                        .onGloballyPositioned { coords ->
-                            itemHeights[index] = coords.size.height.toFloat()
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DragIndicator,
-                        contentDescription = null,
-                        tint = if (draggedIndex == index) Color.Gray else Color.LightGray,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(
-                                if (draggedIndex == index)
-                                    Color.LightGray.copy(alpha = 0.3f)
-                                else
-                                    Color.Transparent
-                            )
-                            .pointerInput(items) {
-                                detectDragGesturesAfterLongPress(
-
-                                    onDragStart = {
-                                        draggedIndex = index
-                                        totalDragY = 0f
-                                        focusManager.clearFocus()
-                                    },
-
-                                    onDragEnd = {
-                                        draggedIndex = null
-                                        totalDragY = 0f
-                                    },
-
-                                    onDragCancel = {
-                                        draggedIndex = null
-                                        totalDragY = 0f
-                                    },
-
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-
-                                        val currentIndex = draggedIndex ?: return@detectDragGesturesAfterLongPress
-
-                                        totalDragY += dragAmount.y
-
-                                        val currentHeight = itemHeights[currentIndex] ?: return@detectDragGesturesAfterLongPress
-
-                                        if (totalDragY > currentHeight && currentIndex < items.lastIndex) {
-                                            items.add(currentIndex + 1, items.removeAt(currentIndex))
-                                            draggedIndex = currentIndex + 1
-                                            totalDragY -= currentHeight
-                                        }
-                                        if (totalDragY < -currentHeight && currentIndex > 0) {
-                                            items.add(currentIndex - 1, items.removeAt(currentIndex))
-                                            draggedIndex = currentIndex - 1
-                                            totalDragY += currentHeight
-                                        }
-                                    }
-                                )
-                            }
-                    )
-
-                    Checkbox(
-                        checked = item.checked,
-                        onCheckedChange = {
-                            items[index] = item.copy(checked = !item.checked)
-                            items.sortBy { it.checked }
-                        })
-
-                    TextField(
-                        value = item.text,
-                        onValueChange = { newText ->
-                            if (newText.isBlank() && items.size > 1) {
-                                items.removeAt(index)
-                            } else {
-                                items[index] = item.copy(text = newText)
-                            }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .onGloballyPositioned {
-                                if (focusIndex == index) {
-                                    focusRequester.requestFocus()
-                                    focusIndex = null
-                                }
-                            }
-                            .focusRequester(focusRequester)
-                            .pointerInput(Unit){
-                                detectTapGestures {
-                                    focusManager.clearFocus()
-                                }
-                            },
-                        textStyle = LocalTextStyle.current.copy(
-                            textDecoration =
-                                if (item.checked) TextDecoration.LineThrough
-                                else TextDecoration.None,
-                            color =
-                                if (item.checked)
-                                    Color.Gray
-                                else LocalContentColor.current
-                        ),
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.Next
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = {
-                                items.add(index + 1, ChecklistItem("", false))
-                                focusIndex = index + 1
-                            }
-                        )
-                    )
-                    IconButton(onClick = {
-                        items.removeAt(index)
-                        if (items.isEmpty()) {
-                            items.add(ChecklistItem("", false))
-                        }
-                    })
-                    {
-                        Icon(Icons.Default.Close, contentDescription = "Delete")
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            LinearProgressIndicator(
-                progress = progress,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .statusBarsPadding()
+                    .height(72.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                IconButton(
+                    onClick = {
+                        if(keyboardVisible){
+                            keyboardController?.hide()
+                        } else {
+                            isLeavingScreen = true
+                            saveAndExit()
+                        }
+                    }
+                ) {
+
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+
+                TextField(
+                    value = title,
+                    onValueChange = {
+                        title = it
+                    },
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            text = "Title",
+                            style = Typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            lineHeight = 45.sp
+                        )},
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.background,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.background,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.background
+                    ),
+                    singleLine = true
+                )
+
+                Box {
+
+                    IconButton(
+                        onClick = {
+                            menuExpanded = true
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.size(width = 125.dp, height = 246.dp),
+                        shape = RoundedCornerShape(22.dp),
+                        onDismissRequest = {
+                            menuExpanded = false
+                        }
+                    ) {
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Add task",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
+                            },
+                            onClick = {
+                                addTask()
+                                menuExpanded = false
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Delete",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
+                            },
+                            onClick = {
+
+                                menuExpanded = false
+
+                                showDeleteDialog = true
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = if (pinned)
+                                        "Unpin"
+                                    else
+                                        "Pin",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall
+                                )
+                            },
+                            onClick = {
+
+                                pinned = !pinned
+
+                                scope.launch {
+
+                                    viewModel.togglePin(
+                                        buildNote().id
+                                    )
+                                }
+
+                                menuExpanded = false
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Save",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
+                            },
+                            onClick = {
+                                isLeavingScreen = true
+                                saveAndExit()
+
+                                menuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            if (showDeleteDialog) {
+                AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    onDismissRequest = {
+                        showDeleteDialog = false
+                    },
+                    title = { Text(
+                        text = "Delete notes?",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = Typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center)},
+                    text = { Text(
+                        text = "Are you sure you want to delete selected notes?",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = Typography.bodyMedium)},
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (noteId == null){
+                                    isLeavingScreen = true
+
+                                    showDeleteDialog = false
+                                    navController.popBackStack()
+                                } else {
+                                    isLeavingScreen = true
+
+                                    scope.launch {
+                                        viewModel.getNote(noteId!!)?.let {
+                                            viewModel.deleteNote(it)
+                                        }
+                                        showDeleteDialog = false
+                                        navController.popBackStack()
+                                    }
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = "Yes",
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                style = Typography.bodySmall)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteDialog = false
+                            }
+                        ) {
+                            Text(
+                                text = "No",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = Typography.bodySmall)
+                        }
+                    }
+                )
+            }
+        }
+
+    ) { padding ->
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding(),
+            contentPadding = PaddingValues(16.dp),
+            reverseLayout = false
+        ) {
+
+            item {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    color = MaterialTheme.colorScheme.onTertiary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {}
+                )
+            }
+
+            items(
+                items = activeItems,
+                key = { it.id }
+            ) { item ->
+
+                ReorderableItem(
+                    state = reorderableLazyListState,
+                    key = item.id
+                ) { isDragging ->
+
+                    ChecklistRow(
+                        item = item,
+                        items = items,
+                        focusItemId = focusItemId,
+                        focusManager = focusManager,
+                        dragHandleModifier = Modifier.draggableHandle(),
+                        onFocusItemChange = {
+                            focusItemId = it
+                        },
+                        onFocusConsumed = {
+                            focusItemId = null
+                        },
+                        listState = listState,
+                        modifier = Modifier
+                            .animateItem()
+                            .clip(RoundedCornerShape(16.dp))
+                            .shadow(
+                                elevation =
+                                    if (isDragging)
+                                        8.dp
+                                    else
+                                        0.dp
+                            )
+                            .background(MaterialTheme.colorScheme.background)
+                    )
+                }
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+            }
+
+            if (completedItems.isNotEmpty()) {
+
+                item {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                completedExpanded =
+                                    !completedExpanded
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Text(
+                            text = "Completed (${completedItems.size})",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = Typography.bodyLarge
+                        )
+                        Icon(
+                            imageVector =
+                                if (completedExpanded)
+                                    Icons.Default.ExpandLess
+                                else
+                                    Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                }
+
+                if (completedExpanded) {
+                    items(
+                        items = completedItems,
+                        key = { it.id }
+                    ) { item ->
+
+                        ReorderableItem(
+                            state = reorderableLazyListState,
+                            key = item.id
+                        ) { isDragging ->
+
+                            ChecklistRow(
+                                item = item,
+                                items = items,
+                                focusItemId = focusItemId,
+                                focusManager = focusManager,
+                                dragHandleModifier = Modifier.draggableHandle(),
+                                onFocusItemChange = {
+                                    focusItemId = it
+                                },
+                                onFocusConsumed = {
+                                    focusItemId = null
+                                },
+                                listState = listState,
+                                modifier = Modifier
+                                    .animateItem()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .shadow(
+                                        elevation =
+                                            if (isDragging)
+                                                8.dp
+                                            else
+                                                0.dp
+                                    )
+                                    .background(MaterialTheme.colorScheme.background)
+                            )
+                        }
+                        Spacer(
+                            modifier = Modifier.height(8.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChecklistRow(
+    item: ChecklistItem,
+    items: SnapshotStateList<ChecklistItem>,
+    listState: LazyListState,
+    focusItemId: String?,
+    onFocusItemChange: (String?) -> Unit,
+    onFocusConsumed: () -> Unit,
+    focusManager: FocusManager,
+    dragHandleModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
+) {
+
+    val focusRequester = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
+    var textFieldValue by remember(item.id) {
+        mutableStateOf(
+            TextFieldValue(
+                text = item.text,
+                selection = TextRange(item.text.length)
             )
-            Text(
-                text = "${items.count { it.checked }} / ${items.size} completed",
-                style = Typography.bodySmall
+        )
+    }
+
+    LaunchedEffect(focusItemId) {
+        if (focusItemId == item.id) {
+
+            val index = items.indexOfFirst { it.id == item.id }
+            if (index != -1) {
+                listState.scrollToItem(index + 1)
+            }
+
+            focusRequester.requestFocus()
+            onFocusConsumed()
+        }
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.DragIndicator,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiaryContainer,
+            modifier = dragHandleModifier
+                .padding(8.dp)
+        )
+
+        Checkbox(
+            checked = item.checked,
+            onCheckedChange = {
+                val index = items.indexOfFirst { it.id == item.id }
+                if (index != -1) {
+                    items[index] =
+                        item.copy(
+                            checked = !item.checked
+                        )
+                }
+            },
+            colors = CheckboxDefaults.colors(
+                checkedColor = MaterialTheme.colorScheme.onTertiary,
+                uncheckedColor = MaterialTheme.colorScheme.onTertiary,
+                checkmarkColor = MaterialTheme.colorScheme.tertiary),
+        )
+
+        TextField(
+            value = textFieldValue,
+
+            onValueChange = { value ->
+                textFieldValue = value
+                val index = items.indexOfFirst { it.id == item.id }
+                if (index == -1) return@TextField
+                items[index] = item.copy(
+                    text = value.text
+                )
+            },
+            keyboardActions = KeyboardActions(
+                onNext = {
+
+                    val currentIndex =
+                        items.indexOfFirst {
+                            it.id == item.id
+                        }
+
+                    if (currentIndex == -1) return@KeyboardActions
+
+                    val newItem =
+                        ChecklistItem(
+                            text = "",
+                            checked = false
+                        )
+
+                    items.add(
+                        currentIndex + 1,
+                        newItem
+                    )
+
+                    onFocusItemChange(newItem.id)
+                }
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester)
+                .onPreviewKeyEvent { event ->
+
+                    if (
+                        event.type == KeyEventType.KeyDown &&
+                        event.key == Key.Backspace &&
+                        item.text.isEmpty()
+                    ) {
+
+                        val index =
+                            items.indexOfFirst {
+                                it.id == item.id
+                            }
+
+                        if (
+                            index != -1 &&
+                            items.size > 1
+                        ) {
+
+                            val previousIndex =
+                                (index - 1)
+                                    .coerceAtLeast(0)
+
+                            val previousItemId =
+                                items[previousIndex].id
+
+                            onFocusItemChange(previousItemId)
+
+                            scope.launch {
+
+                                delay(50)
+
+                                items.removeAt(index)
+                            }
+                        }
+
+                        true
+                    } else {
+                        false
+                    }
+                },
+
+            placeholder = {
+                Text(
+                    text = "Task",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = Typography.bodyMedium)
+            },
+
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+
+            textStyle = LocalTextStyle.current.copy(
+                textDecoration =
+                    if (item.checked)
+                        TextDecoration.LineThrough
+                    else
+                        TextDecoration.None,
+
+                color =
+                    if (item.checked)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        LocalContentColor.current),
+
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        )
+
+        IconButton(
+            onClick = {
+                val index = items.indexOfFirst { it.id == item.id }
+
+                if (index != -1) {
+                    items.removeAt(index)
+
+                    if (items.isEmpty()) {
+                        items.add(
+                            ChecklistItem(
+                                text = "",
+                                checked = false
+                            )
+                        )
+                    }
+                }
+
+            }
+        ) {
+
+            Icon(
+                Icons.Default.Close,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiaryContainer
             )
         }
     }
