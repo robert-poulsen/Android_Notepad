@@ -1,7 +1,9 @@
 package com.valerij.notepad.ui.theme.screens
 
+import android.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -16,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -151,7 +154,11 @@ fun EditNoteScreen(
                         }
                     }
                 ) {
-                    Icon(Icons.Default.ArrowBack, null)
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        null,
+                        tint = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.size(30.dp))
                 }
 
                 TextField(
@@ -160,9 +167,11 @@ fun EditNoteScreen(
                     modifier = Modifier.weight(1f),
                     placeholder = {
                         Text(
-                            "Title",
-                            style = textStyleLarge,
-                        ) },
+                            text = "Title",
+                            style = Typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            lineHeight = 45.sp
+                        )},
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.background,
@@ -170,7 +179,7 @@ fun EditNoteScreen(
                         focusedIndicatorColor = MaterialTheme.colorScheme.background,
                         unfocusedIndicatorColor = MaterialTheme.colorScheme.background
                     ),
-                    textStyle = textStyleLarge,
+                    textStyle = Typography.bodyLarge,
                 )
 
                 Box {
@@ -179,22 +188,29 @@ fun EditNoteScreen(
                             menuExpanded = true
                         }
                     ) {
-
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = null
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.size(30.dp)
                         )
                     }
 
                     DropdownMenu(
                         expanded = menuExpanded,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.size(width = 125.dp, height = 183.dp),
+                        shape = RoundedCornerShape(22.dp),
                         onDismissRequest = {
                             menuExpanded = false
                         }
                     ) {
                         DropdownMenuItem(
                             text = {
-                                Text("Delete")
+                                Text(
+                                    text = "Delete",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
                             },
                             onClick = {
 
@@ -203,13 +219,18 @@ fun EditNoteScreen(
                                 showDeleteDialog = true
                             }
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    if (pinned)
+                                    text = if (pinned)
                                         "Unpin"
                                     else
-                                        "Pin"
+                                        "Pin",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall
                                 )
                             },
                             onClick = {
@@ -225,9 +246,14 @@ fun EditNoteScreen(
                                 menuExpanded = false
                             }
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
                         DropdownMenuItem(
                             text = {
-                                Text("Save")
+                                Text(text = "Save",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
                             },
                             onClick = {
                                 isLeavingScreen = true
@@ -242,17 +268,21 @@ fun EditNoteScreen(
 
             if (showDeleteDialog) {
                 AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     onDismissRequest = {
                         showDeleteDialog = false
                     },
                     title = { Text(
-                        text = "Delete note?",
-                        style = Typography.bodyLarge
-                    )},
+                        text = "Delete notes?",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = Typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center)},
                     text = { Text(
-                        text = "Are you sure you want to delete this note?",
-                        style = Typography.bodyMedium
-                    )},
+                        text = "Are you sure you want to delete selected notes?",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = Typography.bodyMedium)},
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -273,9 +303,10 @@ fun EditNoteScreen(
                                     }
                                 }
                             }
-                        ) {
-                            Text("Yes")
-                        }
+                        ) { Text(
+                            text = "Yes",
+                            color = MaterialTheme.colorScheme.onTertiary,
+                            style = Typography.bodySmall)}
                     },
                     dismissButton = {
                         TextButton(
@@ -283,7 +314,10 @@ fun EditNoteScreen(
                                 showDeleteDialog = false
                             }
                         ) {
-                            Text("No")
+                            Text(
+                                text = "No",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = Typography.bodySmall)
                         }
                     }
                 )
@@ -305,7 +339,8 @@ fun EditNoteScreen(
                 modifier = Modifier.fillMaxSize(),
                 placeholder = { Text(
                     text = "Text here",
-                    style = textStyleMedium,
+                    style = Typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 ) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.background,
@@ -313,7 +348,7 @@ fun EditNoteScreen(
                     focusedIndicatorColor = MaterialTheme.colorScheme.background,
                     unfocusedIndicatorColor = MaterialTheme.colorScheme.background
                 ),
-                textStyle = textStyleMedium,
+                textStyle = Typography.bodyMedium,
             )
         }
     }

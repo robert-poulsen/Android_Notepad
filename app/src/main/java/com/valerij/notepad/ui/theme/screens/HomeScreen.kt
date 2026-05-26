@@ -71,10 +71,10 @@ fun HomeScreen(
     val focusManager = LocalFocusManager.current
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val rotation by animateFloatAsState(targetValue = if (expanded) -45f else 0f, label = "")
-    val noteOffsetX by animateDpAsState(targetValue = if (expanded) (-15).dp else 0.dp, label = "")
-    val noteOffsetY by animateDpAsState(targetValue = if (expanded) (-70).dp else 0.dp, label = "")
-    val checklistOffsetX by animateDpAsState(targetValue = if (expanded) (-70).dp else 0.dp, label = "")
-    val checklistOffsetY by animateDpAsState(targetValue = if (expanded) (-15).dp else 0.dp, label = "")
+    val noteOffsetX by animateDpAsState(targetValue = if (expanded) (-10).dp else 0.dp, label = "")
+    val noteOffsetY by animateDpAsState(targetValue = if (expanded) (-80).dp else 0.dp, label = "")
+    val checklistOffsetX by animateDpAsState(targetValue = if (expanded) (-80).dp else 0.dp, label = "")
+    val checklistOffsetY by animateDpAsState(targetValue = if (expanded) (-10).dp else 0.dp, label = "")
     var menuExpanded by remember { mutableStateOf(false) }
 
     val sortedNotes = remember(notes, sortType) {
@@ -133,7 +133,7 @@ fun HomeScreen(
                             selectionMode = false
                             selectedNotes.clear()
                         }) {
-                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.tertiaryContainer)
+                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.size(30.dp))
                         }
                     },
                     actions = {
@@ -144,13 +144,13 @@ fun HomeScreen(
                             selectedNotes.clear()
                             selectionMode = false
                         }) {
-                            Icon(Icons.Default.PushPin, null, tint = MaterialTheme.colorScheme.tertiaryContainer)
+                            Icon(Icons.Default.PushPin, null, tint = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.size(30.dp))
                         }
 
                         IconButton(onClick = {
                             showDeleteDialog = true
                         }) {
-                            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.tertiaryContainer)
+                            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.size(30.dp))
                         }
                     }
                 )
@@ -183,8 +183,8 @@ fun HomeScreen(
 
                             modifier = Modifier.offset(
                                 x = noteOffsetX,
-                                y = noteOffsetY
-                            ),
+                                y = noteOffsetY)
+                                .size(65.dp),
 
                             shape = CircleShape,
                             contentColor = MaterialTheme.colorScheme.onTertiary,
@@ -214,8 +214,8 @@ fun HomeScreen(
 
                             modifier = Modifier.offset(
                                 x = checklistOffsetX,
-                                y = checklistOffsetY
-                            ),
+                                y = checklistOffsetY)
+                                .size(65.dp),
 
                             shape = CircleShape,
                             contentColor = MaterialTheme.colorScheme.onTertiary,
@@ -226,13 +226,14 @@ fun HomeScreen(
                     }
                     FloatingActionButton(
                         onClick = { expanded = !expanded },
+                        modifier = Modifier.size(65.dp),
                         contentColor = MaterialTheme.colorScheme.onTertiary,
                         containerColor = MaterialTheme.colorScheme.tertiary,
                         ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            modifier = Modifier.rotate(rotation)
+                            modifier = Modifier.size(30.dp).rotate(rotation)
                         )
                     }
                 }
@@ -270,7 +271,7 @@ fun HomeScreen(
                                 Icons.Default.Search,
                                 null,
                                 Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.tertiary
+                                tint = MaterialTheme.colorScheme.tertiaryContainer
                             )},
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.background,
@@ -291,13 +292,15 @@ fun HomeScreen(
                                 Icons.Default.MoreVert,
                                 contentDescription = null,
                                 modifier = Modifier.size(30.dp),
-                                tint = MaterialTheme.colorScheme.tertiary
+                                tint = MaterialTheme.colorScheme.tertiaryContainer
                             )
                         }
 
                         DropdownMenu(
                             expanded = menuExpanded,
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(width = 150.dp, height = 115.dp),
+                            shape = RoundedCornerShape(22.dp),
                             onDismissRequest = {
                                 menuExpanded = false
                             }
@@ -305,16 +308,21 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text(
                                     text = "Sort by",
-                                    color = MaterialTheme.colorScheme.primary )},
+                                    style = Typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimary )},
                                 onClick = {
                                     showSortDialog = true
                                     menuExpanded = false
                                 }
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(4.dp))
                             DropdownMenuItem(
                                 text = { Text(
                                     text = "Trash",
-                                    color = MaterialTheme.colorScheme.primary )},
+                                    style = Typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimary )},
                                 onClick = {
                                     menuExpanded = false
                                 }

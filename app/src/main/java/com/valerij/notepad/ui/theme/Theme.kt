@@ -13,7 +13,6 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
     background = backgroundDark,
-    onBackground = searchIconDark,
     primary = mainTextDark,
     onPrimary = secTextDark,
     primaryContainer = placeholderTextDark,

@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color.Companion
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -52,6 +53,8 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
@@ -311,7 +314,9 @@ fun ChecklistScreen(
 
                     Icon(
                         Icons.Default.ArrowBack,
-                        contentDescription = null
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.size(30.dp)
                     )
                 }
 
@@ -322,8 +327,12 @@ fun ChecklistScreen(
                     },
                     modifier = Modifier.weight(1f),
                     placeholder = {
-                        Text("Title")
-                    },
+                        Text(
+                            text = "Title",
+                            style = Typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            lineHeight = 45.sp
+                        )},
                     textStyle = MaterialTheme.typography.bodyLarge,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.background,
@@ -341,15 +350,19 @@ fun ChecklistScreen(
                             menuExpanded = true
                         }
                     ) {
-
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = null
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.size(30.dp)
                         )
                     }
 
                     DropdownMenu(
                         expanded = menuExpanded,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.size(width = 125.dp, height = 246.dp),
+                        shape = RoundedCornerShape(22.dp),
                         onDismissRequest = {
                             menuExpanded = false
                         }
@@ -357,18 +370,25 @@ fun ChecklistScreen(
 
                         DropdownMenuItem(
                             text = {
-                                Text("Add task")
+                                Text(
+                                    text = "Add task",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
                             },
                             onClick = {
-
                                 addTask()
-
                                 menuExpanded = false
                             }
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
                         DropdownMenuItem(
                             text = {
-                                Text("Delete")
+                                Text(
+                                    text = "Delete",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
                             },
                             onClick = {
 
@@ -377,14 +397,18 @@ fun ChecklistScreen(
                                 showDeleteDialog = true
                             }
                         )
-
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    if (pinned)
+                                    text = if (pinned)
                                         "Unpin"
                                     else
-                                        "Pin"
+                                        "Pin",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall
                                 )
                             },
                             onClick = {
@@ -401,10 +425,15 @@ fun ChecklistScreen(
                                 menuExpanded = false
                             }
                         )
-
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                        Spacer(modifier = Modifier.height(6.dp))
                         DropdownMenuItem(
                             text = {
-                                Text("Save")
+                                Text(
+                                    text = "Save",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodySmall)
                             },
                             onClick = {
                                 isLeavingScreen = true
@@ -418,17 +447,21 @@ fun ChecklistScreen(
             }
             if (showDeleteDialog) {
                 AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     onDismissRequest = {
                         showDeleteDialog = false
                     },
                     title = { Text(
-                        text = "Delete note?",
-                        style = Typography.bodyLarge
-                    )},
+                        text = "Delete notes?",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = Typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center)},
                     text = { Text(
-                        text = "Are you sure you want to delete this note?",
-                        style = Typography.bodyMedium
-                    )},
+                        text = "Are you sure you want to delete selected notes?",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = Typography.bodyMedium)},
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -450,7 +483,10 @@ fun ChecklistScreen(
                                 }
                             }
                         ) {
-                            Text("Yes")
+                            Text(
+                                text = "Yes",
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                style = Typography.bodySmall)
                         }
                     },
                     dismissButton = {
@@ -459,7 +495,10 @@ fun ChecklistScreen(
                                 showDeleteDialog = false
                             }
                         ) {
-                            Text("No")
+                            Text(
+                                text = "No",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = Typography.bodySmall)
                         }
                     }
                 )
@@ -479,12 +518,13 @@ fun ChecklistScreen(
         ) {
 
             item {
-
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
+                    color = MaterialTheme.colorScheme.onTertiary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer,
                     gapSize = 0.dp,
                     drawStopIndicator = {}
                 )
@@ -523,14 +563,9 @@ fun ChecklistScreen(
                                     else
                                         0.dp
                             )
-                            .background(
-                                MaterialTheme
-                                    .colorScheme
-                                    .background
-                            )
+                            .background(MaterialTheme.colorScheme.background)
                     )
                 }
-
                 Spacer(
                     modifier = Modifier.height(8.dp)
                 )
@@ -539,9 +574,7 @@ fun ChecklistScreen(
             if (completedItems.isNotEmpty()) {
 
                 item {
-
-                    HorizontalDivider()
-
+                    HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -555,25 +588,25 @@ fun ChecklistScreen(
                     ) {
 
                         Text(
-                            text =
-                                "Completed (${completedItems.size})",
-                            modifier =
-                                Modifier.weight(1f)
+                            text = "Completed (${completedItems.size})",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = Typography.bodyLarge
                         )
-
                         Icon(
                             imageVector =
                                 if (completedExpanded)
                                     Icons.Default.ExpandLess
                                 else
                                     Icons.Default.ExpandMore,
-                            contentDescription = null
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
 
                 if (completedExpanded) {
-
                     items(
                         items = completedItems,
                         key = { it.id }
@@ -607,14 +640,9 @@ fun ChecklistScreen(
                                             else
                                                 0.dp
                                     )
-                                    .background(
-                                        MaterialTheme
-                                            .colorScheme
-                                            .background
-                                    )
+                                    .background(MaterialTheme.colorScheme.background)
                             )
                         }
-
                         Spacer(
                             modifier = Modifier.height(8.dp)
                         )
@@ -669,7 +697,7 @@ fun ChecklistRow(
         Icon(
             Icons.Default.DragIndicator,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
+            tint = MaterialTheme.colorScheme.tertiaryContainer,
             modifier = dragHandleModifier
                 .padding(8.dp)
         )
@@ -677,27 +705,26 @@ fun ChecklistRow(
         Checkbox(
             checked = item.checked,
             onCheckedChange = {
-
                 val index = items.indexOfFirst { it.id == item.id }
-
                 if (index != -1) {
                     items[index] =
                         item.copy(
                             checked = !item.checked
                         )
                 }
-            }
+            },
+            colors = CheckboxDefaults.colors(
+                checkedColor = MaterialTheme.colorScheme.onTertiary,
+                uncheckedColor = MaterialTheme.colorScheme.onTertiary,
+                checkmarkColor = MaterialTheme.colorScheme.tertiary),
         )
 
         TextField(
             value = textFieldValue,
 
             onValueChange = { value ->
-
                 textFieldValue = value
-
                 val index = items.indexOfFirst { it.id == item.id }
-
                 if (index == -1) return@TextField
                 items[index] = item.copy(
                     text = value.text
@@ -727,7 +754,6 @@ fun ChecklistRow(
                     onFocusItemChange(newItem.id)
                 }
             ),
-
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequester)
@@ -773,7 +799,10 @@ fun ChecklistRow(
                 },
 
             placeholder = {
-                Text("Task")
+                Text(
+                    text = "Task",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = Typography.bodyMedium)
             },
 
             colors = TextFieldDefaults.colors(
@@ -792,7 +821,7 @@ fun ChecklistRow(
 
                 color =
                     if (item.checked)
-                        Color.Gray
+                        MaterialTheme.colorScheme.primaryContainer
                     else
                         LocalContentColor.current),
 
@@ -805,7 +834,6 @@ fun ChecklistRow(
                 val index = items.indexOfFirst { it.id == item.id }
 
                 if (index != -1) {
-//                    focusManager.clearFocus(force = true)
                     items.removeAt(index)
 
                     if (items.isEmpty()) {
@@ -823,7 +851,8 @@ fun ChecklistRow(
 
             Icon(
                 Icons.Default.Close,
-                contentDescription = null
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiaryContainer
             )
         }
     }
