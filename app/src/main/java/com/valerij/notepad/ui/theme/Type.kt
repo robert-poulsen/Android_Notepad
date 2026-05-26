@@ -17,21 +17,21 @@ val Manrope = FontFamily(
 val Typography = Typography(
     bodyLarge = TextStyle(
         fontFamily = Manrope,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Normal,
         fontSize = 30.sp,
         lineHeight = 36.sp,
         letterSpacing = 0.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = Manrope,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Light,
         fontSize = 25.sp,
         lineHeight = 30.sp,
         letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
         fontFamily = Manrope,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.ExtraLight,
         fontSize = 20.sp,
         lineHeight = 26.sp,
         letterSpacing = 0.sp

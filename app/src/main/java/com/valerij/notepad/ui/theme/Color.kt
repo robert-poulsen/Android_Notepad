@@ -4,15 +4,19 @@ import androidx.compose.ui.graphics.Color
 
 val background = Color(0xFFffffff)
 
-val backgroundDark = Color(0xFF000000)
-val textDark = Color(0xFFE9F8E7)
-val buttonDark = Color(0xFF14270A)
-val buttonContentDark = Color(0xFF49C03D)
-val tertiaryDark = Color(0xFFD2F0CF)
-val tertiaryContentDark = Color(0xFF091205)
+val backgroundDark = Color(0xFF0B0B0D)
+val previewBackgroundDark = Color(0xFF15171B)
+val focusPreviewBackgroundDark = Color(0xFF1C1F24)
+val mainTextDark = Color(0xFFF2F2F2)
+val secTextDark = Color(0xFF9EA3AA)
+val placeholderTextDark = Color(0xFF6E737A)
+val searchIconDark = Color(0xFFAEB4BC)
+val buttonBackgroundDark = Color(0xFF18361A)
+val accentDark = Color(0xFF7CFF5B)
+val buttonFocusDark = Color(0xFF214B24)
 
-val Green0 = Color(0xFF93c47d)
-val Green = Color(0xFF38762d)
-val darkGreen = Color(0xFF274e13)
-val Orange = Color(0xFFce7e00)
-val Orange2 = Color(0xFFb45f06)
+
+
+
+
+val sd = Color(0xFFD9FFD0)

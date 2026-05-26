@@ -1,8 +1,7 @@
 package com.valerij.notepad.ui.theme.screens
 
+import android.R
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -11,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -21,23 +21,24 @@ import androidx.navigation.NavController
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.valerij.notepad.data.local.NoteEntity
 
@@ -61,9 +62,10 @@ fun HomeScreen(
     var selectionMode by remember { mutableStateOf(false) }
     val selectedNotes = remember { mutableStateListOf<String>() }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
     var isLeavingScreen by remember { mutableStateOf(false) }
-    val sortDesc by viewModel.sortDesc.collectAsState()
-    val sortByAlphabet by viewModel.sortByAlphabet.collectAsState()
+    var selectedSort by remember { mutableStateOf(NotesViewModel.SortType.DATE_DESC) }
+    var tempSort by remember { mutableStateOf(selectedSort) }
     var pendingPinId by remember { mutableStateOf<String?>(null) }
     val sortType by viewModel.sortType.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -73,6 +75,7 @@ fun HomeScreen(
     val noteOffsetY by animateDpAsState(targetValue = if (expanded) (-70).dp else 0.dp, label = "")
     val checklistOffsetX by animateDpAsState(targetValue = if (expanded) (-70).dp else 0.dp, label = "")
     val checklistOffsetY by animateDpAsState(targetValue = if (expanded) (-15).dp else 0.dp, label = "")
+    var menuExpanded by remember { mutableStateOf(false) }
 
     val sortedNotes = remember(notes, sortType) {
 
@@ -118,13 +121,19 @@ fun HomeScreen(
         topBar = {
             if (selectionMode) {
                 TopAppBar(
-                    title = { Text("${selectedNotes.size} selected") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    ),
+                    title = { Text(
+                        text = "${selectedNotes.size} selected",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = Typography.bodyMedium)},
                     navigationIcon = {
                         IconButton(onClick = {
                             selectionMode = false
                             selectedNotes.clear()
                         }) {
-                            Icon(Icons.Default.Close, null)
+                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.tertiaryContainer)
                         }
                     },
                     actions = {
@@ -135,13 +144,13 @@ fun HomeScreen(
                             selectedNotes.clear()
                             selectionMode = false
                         }) {
-                            Icon(Icons.Default.PushPin, null)
+                            Icon(Icons.Default.PushPin, null, tint = MaterialTheme.colorScheme.tertiaryContainer)
                         }
 
                         IconButton(onClick = {
                             showDeleteDialog = true
                         }) {
-                            Icon(Icons.Default.Delete, null)
+                            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.tertiaryContainer)
                         }
                     }
                 )
@@ -178,8 +187,8 @@ fun HomeScreen(
                             ),
 
                             shape = CircleShape,
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiary,
+                            containerColor = MaterialTheme.colorScheme.tertiary,
                         ) {
                             Icon(Icons.Default.Notes, null)
                         }
@@ -209,16 +218,16 @@ fun HomeScreen(
                             ),
 
                             shape = CircleShape,
-                            contentColor = MaterialTheme.colorScheme.secondaryContainer,
-                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onTertiary,
+                            containerColor = MaterialTheme.colorScheme.tertiary,
                         ) {
                             Icon(Icons.Default.Checklist, null)
                         }
                     }
                     FloatingActionButton(
                         onClick = { expanded = !expanded },
-                        contentColor = MaterialTheme.colorScheme.secondaryContainer,
-                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                        containerColor = MaterialTheme.colorScheme.tertiary,
                         ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -237,7 +246,6 @@ fun HomeScreen(
                 .padding(16.dp)
                 .imePadding()
         ) {
-
             if (!selectionMode) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -248,36 +256,236 @@ fun HomeScreen(
                         onValueChange = viewModel::updateSearch,
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        textStyle = LocalTextStyle.current.copy(
-                            lineHeight = 35.sp
+                        textStyle = Typography.bodyLarge.copy(
+                            lineHeight = 40.sp
                         ),
-                        placeholder = { Text("Search") },
-                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(35.dp)) },
+                        placeholder = {
+                            Text(
+                                text = "Search",
+                                style = Typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )},
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                null,
+                                Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )},
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.background,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.background,
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.background
+                        ),
                     )
 
-                    IconButton(
-                        onClick = { viewModel.toggleSortByDate() },
-                        modifier = Modifier.size(56.dp),
-                    ) {
-                        Icon(Icons.Default.Sort, null)
-                    }
+                    Box {
+                        IconButton(
+                            onClick = {
+                                menuExpanded = true
+                            }
+                        ) {
 
-                    IconButton(
-                        onClick = { viewModel.toggleSortByAlphabet() },
-                        modifier = Modifier.size(56.dp),
-                    ) {
-                        Icon(Icons.Default.SortByAlpha, null)
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = null,
+                                modifier = Modifier.size(30.dp),
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            onDismissRequest = {
+                                menuExpanded = false
+                            }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(
+                                    text = "Sort by",
+                                    color = MaterialTheme.colorScheme.primary )},
+                                onClick = {
+                                    showSortDialog = true
+                                    menuExpanded = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(
+                                    text = "Trash",
+                                    color = MaterialTheme.colorScheme.primary )},
+                                onClick = {
+                                    menuExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            if (showSortDialog) {
+                AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    onDismissRequest = {
+                        showSortDialog = false
+                    },
+                    title = {
+                        Text(
+                            text = "Sort by",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = Typography.bodyLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center)
+                    },
+                    text = {
+                        Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        tempSort = NotesViewModel.SortType.DATE_ASC
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = tempSort == NotesViewModel.SortType.DATE_ASC,
+                                    onClick = {
+                                        tempSort = NotesViewModel.SortType.DATE_ASC
+                                    }
+                                )
+                                Text(
+                                    text = "Date created (oldest first)",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        tempSort = NotesViewModel.SortType.DATE_DESC
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = tempSort == NotesViewModel.SortType.DATE_DESC,
+                                    onClick = {
+                                        tempSort = NotesViewModel.SortType.DATE_DESC
+                                    }
+                                )
+                                Text(
+                                    text = "Date created (newest first)",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        tempSort = NotesViewModel.SortType.TITLE_ASC
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = tempSort == NotesViewModel.SortType.TITLE_ASC,
+                                    onClick = {
+                                        tempSort = NotesViewModel.SortType.TITLE_ASC
+                                    }
+                                )
+                                Text(
+                                    text = "Title (A-Z)",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        tempSort = NotesViewModel.SortType.TITLE_DESC
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = tempSort == NotesViewModel.SortType.TITLE_DESC,
+                                    onClick = {
+                                        tempSort = NotesViewModel.SortType.TITLE_DESC
+                                    }
+                                )
+                                Text(
+                                    text = "Title (Z-A)",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium)
+                            }
+                        }
+                    },
+
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                selectedSort = tempSort
+                                viewModel.sortNotes(selectedSort)
+                                showSortDialog = false
+                            }
+                        ) {
+                            Text(
+                                text = "OK",
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                style = Typography.bodySmall)
+                        }
+                    },
+
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                tempSort = selectedSort
+                                showSortDialog = false
+                            }
+                        ) {
+                            Text(text = "Cancel",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = Typography.bodySmall)
+                        }
+                    }
+                )
+            }
+
             if (showDeleteDialog && selectedNotes.isNotEmpty()) {
                 AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     onDismissRequest = { showDeleteDialog = false },
-                    title = { Text("Delete notes?") },
-                    text = { Text("Are you sure you want to delete selected notes?") },
+                    title = { Text(
+                        text = "Delete notes?",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = Typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center)},
+                    text = { Text(
+                        text = "Are you sure you want to delete selected notes?",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = Typography.bodyMedium)},
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -286,11 +494,17 @@ fun HomeScreen(
                                 selectionMode = false
                                 showDeleteDialog = false
                             }
-                        ) { Text("Yes") }
+                        ) { Text(
+                            text = "Yes",
+                            color = MaterialTheme.colorScheme.onTertiary,
+                            style = Typography.bodySmall)}
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("No")
+                            Text(
+                                text = "No",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = Typography.bodySmall)
                         }
                     }
                 )
@@ -298,20 +512,36 @@ fun HomeScreen(
 
             noteToDelete?.let { note ->
                 AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     onDismissRequest = { noteToDelete = null },
-                    title = { Text("Delete note?") },
-                    text = { Text("Are you sure you want to delete this note?") },
+                    title = { Text(
+                        text = "Delete note?",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = Typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center)},
+                    text = { Text(
+                        text = "Are you sure you want to delete this note?",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = Typography.bodyMedium)},
                     confirmButton = {
                         TextButton(
                             onClick = {
                                 viewModel.deleteNote(note)
                                 noteToDelete = null
                             }
-                        ) { Text("Yes") }
+                        ) { Text(
+                            text = "Yes",
+                            color = MaterialTheme.colorScheme.onTertiary,
+                            style = Typography.bodySmall )}
                     },
                     dismissButton = {
                         TextButton(onClick = { noteToDelete = null }) {
-                            Text("No")
+                            Text(
+                                text = "No",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = Typography.bodySmall)
                         }
                     }
                 )
@@ -333,12 +563,12 @@ fun HomeScreen(
                             when (value) {
 
                                 SwipeToDismissBoxValue.StartToEnd -> {
-                                    noteToDelete = note
+                                    pendingPinId = note.id
                                     false
                                 }
 
                                 SwipeToDismissBoxValue.EndToStart -> {
-                                    pendingPinId = note.id
+                                    noteToDelete = note
                                     false
                                 }
 
@@ -385,12 +615,10 @@ fun HomeScreen(
                             SwipeToDismissBox(
                                 state = dismissState,
                                 backgroundContent = {
-
                                     val color = when (dismissState.targetValue) {
                                         SwipeToDismissBoxValue.Settled -> Color.Transparent
-                                        else -> Color.LightGray
+                                        else -> MaterialTheme.colorScheme.primaryContainer
                                     }
-
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
