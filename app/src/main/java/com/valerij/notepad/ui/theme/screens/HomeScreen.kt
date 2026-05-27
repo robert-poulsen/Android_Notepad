@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -41,9 +42,11 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.valerij.notepad.data.local.NoteEntity
+import com.valerij.notepad.ui.theme.NotepadTheme
 
 import com.valerij.notepad.ui.theme.components.NoteItem
 import com.valerij.notepad.ui.theme.NotesViewModel
+import com.valerij.notepad.ui.theme.Theme
 import com.valerij.notepad.ui.theme.Typography
 import kotlinx.coroutines.delay
 
@@ -63,7 +66,9 @@ fun HomeScreen(
     val selectedNotes = remember { mutableStateListOf<String>() }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
+    var showAppearanceDialog by remember { mutableStateOf(false) }
     var isLeavingScreen by remember { mutableStateOf(false) }
+    var selectionAppearance by remember { mutableStateOf(Theme.DARK) }
     var selectedSort by remember { mutableStateOf(NotesViewModel.SortType.DATE_DESC) }
     var tempSort by remember { mutableStateOf(selectedSort) }
     var pendingPinId by remember { mutableStateOf<String?>(null) }
@@ -287,7 +292,6 @@ fun HomeScreen(
                                 menuExpanded = true
                             }
                         ) {
-
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = null,
@@ -299,7 +303,7 @@ fun HomeScreen(
                         DropdownMenu(
                             expanded = menuExpanded,
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.size(width = 150.dp, height = 115.dp),
+                            modifier = Modifier.size(width = 150.dp, height = 178.dp),
                             shape = RoundedCornerShape(22.dp),
                             onDismissRequest = {
                                 menuExpanded = false
@@ -327,6 +331,19 @@ fun HomeScreen(
                                     menuExpanded = false
                                 }
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            DropdownMenuItem(
+                                text = { Text(
+                                    text = "Appearance",
+                                    style = Typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimary )},
+                                onClick = {
+                                    showAppearanceDialog = true
+                                    menuExpanded = false
+                                }
+                            )
                         }
                     }
                 }
@@ -338,9 +355,7 @@ fun HomeScreen(
                 AlertDialog(
                     shape = RoundedCornerShape(30.dp),
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    onDismissRequest = {
-                        showSortDialog = false
-                    },
+                    onDismissRequest = { showSortDialog = false },
                     title = {
                         Text(
                             text = "Sort by",
@@ -469,6 +484,121 @@ fun HomeScreen(
                             onClick = {
                                 tempSort = selectedSort
                                 showSortDialog = false
+                            }
+                        ) {
+                            Text(text = "Cancel",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = Typography.bodySmall)
+                        }
+                    }
+                )
+            }
+
+            if (showAppearanceDialog) {
+                AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    onDismissRequest = { showAppearanceDialog = false },
+                    title = { Text(
+                        text = "Select theme mode",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = Typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center)},
+                    text = {
+                        Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectionAppearance = Theme.DARK
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = selectionAppearance == Theme.DARK,
+                                    onClick = {
+                                        selectionAppearance = Theme.DARK
+                                    }
+                                )
+                                Text(
+                                    text = "Dark theme",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectionAppearance = Theme.LIGHT
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = selectionAppearance == Theme.LIGHT,
+                                    onClick = {
+                                        selectionAppearance = Theme.LIGHT
+                                    }
+                                )
+                                Text(
+                                    text = "Light theme",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectionAppearance = Theme.SYSTEM
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = selectionAppearance == Theme.SYSTEM,
+                                    onClick = {
+                                        selectionAppearance = Theme.SYSTEM
+                                    }
+                                )
+                                Text(
+                                    text = "Dynamic colors (uses the colors of your phone system)",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                selectionAppearance
+                                showAppearanceDialog = false
+                            }
+                        ) {
+                            Text(
+                                text = "OK",
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                style = Typography.bodySmall)
+                        }
+                    },
+
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showAppearanceDialog = false
                             }
                         ) {
                             Text(text = "Cancel",
