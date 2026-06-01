@@ -56,7 +56,7 @@ fun NoteItem(
                 containerColor = MaterialTheme.colorScheme.secondary
             ),
             shape = RoundedCornerShape(20.dp),
-            border = BorderStroke((0.1).dp ,color = MaterialTheme.colorScheme.onTertiary)
+            border = BorderStroke((0.1).dp ,color = MaterialTheme.colorScheme.onPrimary)
         ) {
             val previeText = buildString { append(note.content) }
 

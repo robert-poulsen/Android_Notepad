@@ -1,5 +1,6 @@
 package com.valerij.notepad.ui.theme.screens
 
+import com.valerij.notepad.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,6 +52,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -328,7 +330,7 @@ fun ChecklistScreen(
                     modifier = Modifier.weight(1f),
                     placeholder = {
                         Text(
-                            text = "Title",
+                            text = stringResource(R.string.note_title),
                             style = Typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onPrimary,
                             lineHeight = 45.sp
@@ -361,7 +363,7 @@ fun ChecklistScreen(
                     DropdownMenu(
                         expanded = menuExpanded,
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.size(width = 125.dp, height = 246.dp),
+                        modifier = Modifier.size(width = 155.dp, height = 246.dp),
                         shape = RoundedCornerShape(22.dp),
                         onDismissRequest = {
                             menuExpanded = false
@@ -371,7 +373,7 @@ fun ChecklistScreen(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = "Add task",
+                                    text = stringResource(R.string.button_new_task),
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodySmall)
                             },
@@ -386,7 +388,7 @@ fun ChecklistScreen(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = "Delete",
+                                    text = stringResource(R.string.button_delete),
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodySmall)
                             },
@@ -404,9 +406,9 @@ fun ChecklistScreen(
                             text = {
                                 Text(
                                     text = if (pinned)
-                                        "Unpin"
+                                        stringResource(R.string.button_unpin)
                                     else
-                                        "Pin",
+                                        stringResource(R.string.button_pin),
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodySmall
                                 )
@@ -431,7 +433,7 @@ fun ChecklistScreen(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = "Save",
+                                    text = stringResource(R.string.button_save),
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodySmall)
                             },
@@ -453,13 +455,13 @@ fun ChecklistScreen(
                         showDeleteDialog = false
                     },
                     title = { Text(
-                        text = "Delete notes?",
+                        text = stringResource(R.string.delete_alert_title_one),
                         color = MaterialTheme.colorScheme.primary,
                         style = Typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center)},
                     text = { Text(
-                        text = "Are you sure you want to delete selected notes?",
+                        text = stringResource(R.string.delete_alert_text_one),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = Typography.bodyMedium)},
                     confirmButton = {
@@ -484,7 +486,7 @@ fun ChecklistScreen(
                             }
                         ) {
                             Text(
-                                text = "Yes",
+                                text = stringResource(R.string.delete_submit),
                                 color = MaterialTheme.colorScheme.onTertiary,
                                 style = Typography.bodySmall)
                         }
@@ -496,7 +498,7 @@ fun ChecklistScreen(
                             }
                         ) {
                             Text(
-                                text = "No",
+                                text = stringResource(R.string.delete_cancel),
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 style = Typography.bodySmall)
                         }
@@ -588,7 +590,7 @@ fun ChecklistScreen(
                     ) {
 
                         Text(
-                            text = "Completed (${completedItems.size})",
+                            text = "${stringResource(R.string.completed_count)} (${completedItems.size})",
                             modifier = Modifier.weight(1f),
                             color = MaterialTheme.colorScheme.onPrimary,
                             style = Typography.bodyLarge
@@ -714,8 +716,8 @@ fun ChecklistRow(
                 }
             },
             colors = CheckboxDefaults.colors(
-                checkedColor = MaterialTheme.colorScheme.onTertiary,
-                uncheckedColor = MaterialTheme.colorScheme.onTertiary,
+                checkedColor = MaterialTheme.colorScheme.tertiaryContainer,
+                uncheckedColor = MaterialTheme.colorScheme.tertiaryContainer,
                 checkmarkColor = MaterialTheme.colorScheme.tertiary),
         )
 
@@ -800,7 +802,7 @@ fun ChecklistRow(
 
             placeholder = {
                 Text(
-                    text = "Task",
+                    text = stringResource(R.string.note_task),
                     color = MaterialTheme.colorScheme.onPrimary,
                     style = Typography.bodyMedium)
             },

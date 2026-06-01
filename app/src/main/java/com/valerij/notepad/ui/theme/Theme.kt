@@ -24,21 +24,34 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-
+    background = backgroundLight,
+    primary = mainTextLight,
+    onPrimary = secTextLight,
+    primaryContainer = placeholderTextLight,
+    secondary = previewBackgroundLight,
+    secondaryContainer = focusPreviewBackgroundLight,
+    tertiary = buttonBackgroundLight,
+    onTertiary = accentLight,
+    tertiaryContainer = buttonFocusLight
 )
+
+enum class Theme{
+    DARK,
+    LIGHT,
+    SYSTEM
+}
 
 @Composable
 fun NotepadTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
+    darkTheme: Boolean = true,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-//        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-//            val context = LocalContext.current
-//            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-//        }
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
 
         darkTheme -> DarkColorScheme
         else -> LightColorScheme

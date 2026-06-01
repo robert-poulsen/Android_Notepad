@@ -1,23 +1,20 @@
 package com.valerij.notepad.ui.theme.screens
 
-import android.R
+import com.valerij.notepad.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
-import androidx.compose.material3.OutlinedTextFieldDefaults.contentPadding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -167,7 +164,7 @@ fun EditNoteScreen(
                     modifier = Modifier.weight(1f),
                     placeholder = {
                         Text(
-                            text = "Title",
+                            text = stringResource(R.string.note_title),
                             style = Typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onPrimary,
                             lineHeight = 45.sp
@@ -199,7 +196,7 @@ fun EditNoteScreen(
                     DropdownMenu(
                         expanded = menuExpanded,
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.size(width = 125.dp, height = 183.dp),
+                        modifier = Modifier.size(width = 155.dp, height = 183.dp),
                         shape = RoundedCornerShape(22.dp),
                         onDismissRequest = {
                             menuExpanded = false
@@ -208,7 +205,7 @@ fun EditNoteScreen(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = "Delete",
+                                    text = stringResource(R.string.button_delete),
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodySmall)
                             },
@@ -226,9 +223,9 @@ fun EditNoteScreen(
                             text = {
                                 Text(
                                     text = if (pinned)
-                                        "Unpin"
+                                        stringResource(R.string.button_unpin)
                                     else
-                                        "Pin",
+                                        stringResource(R.string.button_pin),
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodySmall
                                 )
@@ -251,7 +248,7 @@ fun EditNoteScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         DropdownMenuItem(
                             text = {
-                                Text(text = "Save",
+                                Text(text = stringResource(R.string.button_save),
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodySmall)
                             },
@@ -274,13 +271,13 @@ fun EditNoteScreen(
                         showDeleteDialog = false
                     },
                     title = { Text(
-                        text = "Delete notes?",
+                        text = stringResource(R.string.delete_alert_title_one),
                         color = MaterialTheme.colorScheme.primary,
                         style = Typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center)},
                     text = { Text(
-                        text = "Are you sure you want to delete selected notes?",
+                        text = stringResource(R.string.delete_alert_text_one),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = Typography.bodyMedium)},
                     confirmButton = {
@@ -304,7 +301,7 @@ fun EditNoteScreen(
                                 }
                             }
                         ) { Text(
-                            text = "Yes",
+                            text = stringResource(R.string.delete_submit),
                             color = MaterialTheme.colorScheme.onTertiary,
                             style = Typography.bodySmall)}
                     },
@@ -315,7 +312,7 @@ fun EditNoteScreen(
                             }
                         ) {
                             Text(
-                                text = "No",
+                                text = stringResource(R.string.delete_cancel),
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 style = Typography.bodySmall)
                         }
@@ -338,7 +335,7 @@ fun EditNoteScreen(
                 onValueChange = { content = it },
                 modifier = Modifier.fillMaxSize(),
                 placeholder = { Text(
-                    text = "Text here",
+                    text = stringResource(R.string.note_text),
                     style = Typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
                 ) },
