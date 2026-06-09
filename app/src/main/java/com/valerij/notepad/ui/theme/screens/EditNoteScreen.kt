@@ -1,22 +1,33 @@
 package com.valerij.notepad.ui.theme.screens
 
+import com.valerij.notepad.R
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
-import java.util.UUID
-
 import com.valerij.notepad.data.local.NoteEntity
 import com.valerij.notepad.ui.theme.NotesViewModel
-
-
+import com.valerij.notepad.ui.theme.Typography
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,14 +41,86 @@ fun EditNoteScreen(
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
+    var pinnedNote by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isLeavingScreen by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var pinned by remember { mutableStateOf(false) }
+    var deleted by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val focusManager = LocalFocusManager.current
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val textStyleMedium = MaterialTheme.typography.bodyMedium
+    val textStyleLarge = MaterialTheme.typography.bodyLarge
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // 🔥 ЗАВАНТАЖЕННЯ НОТАТКИ З ROOM
+    fun buildNote(): NoteEntity {
+        val finalTitle =
+            if (title.isBlank()) {
+                content
+                    .lineSequence()
+                    .firstOrNull()
+                    ?.take(30)
+                    ?: "No name"
+            } else title
+
+        return NoteEntity(
+            id = noteId ?: UUID.randomUUID().toString(),
+            title = finalTitle,
+            content = content,
+            deleted = deleted,
+            checklist = false,
+            pinned = pinned,
+        )
+    }
+
+    fun saveAndExit() {
+        if (title.isBlank() && content.isBlank()){
+            navController.popBackStack()
+        } else {
+            scope.launch {
+                viewModel.saveNote(buildNote())
+                navController.popBackStack()
+            }
+        }
+    }
+
+    BackHandler {
+        isLeavingScreen = true
+        saveAndExit()
+    }
+
+    DisposableEffect(lifecycleOwner) {
+
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && !isLeavingScreen && (title.isNotBlank() && content.isNotBlank())) {
+                scope.launch {
+                    viewModel.saveNote(buildNote())
+                }
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(keyboardVisible) {
+        if (!keyboardVisible) {
+            focusManager.clearFocus()
+        }
+    }
+
     LaunchedEffect(noteId) {
         if (noteId != null) {
-            val note = viewModel.getNote(noteId)
-            if (note != null) {
+            viewModel.getNote(noteId)?.let { note ->
                 title = note.title
                 content = note.content
+                pinned = note.pinned
+                deleted = note.deleted
             }
         }
         loaded = true
@@ -54,57 +137,303 @@ fun EditNoteScreen(
     }
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier
+                        .padding(bottom = 450.dp)
+                        .size(width = 300.dp, height = 80.dp)
+                        .statusBarsPadding(),
+                    shape = RoundedCornerShape(80.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Text(
+                        text = stringResource(R.string.note_restored),
+                        style = Typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        },
         topBar = {
-            TopAppBar(
-                title = { Text("Нотатка") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        scope.launch {
-                            viewModel.saveNote(
-                                NoteEntity(
-                                    id = noteId ?: UUID.randomUUID().toString(),
-                                    title = title,
-                                    content = content
-                                )
-                            )
-                            navController.popBackStack()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(72.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = {
+                        if(keyboardVisible){
+                            keyboardController?.hide()
+                        } else {
+                            isLeavingScreen = true
+                            saveAndExit()
                         }
-                    }) {
-                        Icon(Icons.Default.Save, contentDescription = null)
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(30.dp))
+                }
+
+                TextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.note_title),
+                            style = Typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            lineHeight = 45.sp
+                        )},
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    textStyle = Typography.bodyLarge,
+                    enabled = !deleted
+                )
+
+                Box {
+                    IconButton(
+                        onClick = {
+                            menuExpanded = true
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+
+                    if(!deleted) {
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(width = 155.dp, height = 183.dp),
+                            shape = RoundedCornerShape(22.dp),
+                            onDismissRequest = {
+                                menuExpanded = false
+                            }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.button_delete),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+
+                                    menuExpanded = false
+
+                                    showDeleteDialog = true
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = if (pinned)
+                                            stringResource(R.string.button_unpin)
+                                        else
+                                            stringResource(R.string.button_pin),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+
+                                    pinned = !pinned
+
+                                    scope.launch {
+                                        viewModel.togglePin(
+                                            buildNote().id
+                                        )
+                                    }
+
+                                    menuExpanded = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.button_save),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+                                    isLeavingScreen = true
+                                    saveAndExit()
+
+                                    menuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                    if(deleted) {
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(width = 155.dp, height = 126.dp),
+                            shape = RoundedCornerShape(22.dp),
+                            onDismissRequest = {
+                                menuExpanded = false
+                            }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.delete_forever_note),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    showDeleteDialog = true
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.restore_note),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+                                    deleted = false
+                                    menuExpanded = false
+
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
-            )
+            }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    shape = RoundedCornerShape(30.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    onDismissRequest = {
+                        showDeleteDialog = false
+                    },
+                    title = { Text(
+                        text = stringResource(R.string.delete_alert_title_one),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = Typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center)},
+                    text = { Text(
+                        text = stringResource(R.string.delete_alert_text_one),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = Typography.bodyMedium)},
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (noteId == null){
+                                    isLeavingScreen = true
+                                    showDeleteDialog = false
+                                    navController.popBackStack()
+                                } else if(deleted){
+                                    isLeavingScreen = true
+
+                                    scope.launch {
+                                        viewModel.getNote(noteId!!)?.let {
+                                            viewModel.deleteNote(it)
+                                        }
+                                        showDeleteDialog = false
+                                        navController.popBackStack()
+                                    }
+                                } else {
+                                    isLeavingScreen = true
+                                    deleted = true
+                                    showDeleteDialog = false
+                                    saveAndExit()
+                                }
+                            }
+                        ) { Text(
+                            text = stringResource(R.string.delete_submit),
+                            color = MaterialTheme.colorScheme.onTertiary,
+                            style = Typography.bodySmall)}
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteDialog = false
+                            }
+                        ) {
+                            Text(
+                                text = stringResource(R.string.delete_cancel),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                style = Typography.bodySmall)
+                        }
+                    }
+                )
+            }
         }
+
     ) { padding ->
 
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
+                .padding(vertical = 10.dp)
                 .fillMaxSize()
+                .imePadding()
         ) {
-
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Заголовок") }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
+            TextField(
                 value = content,
                 onValueChange = { content = it },
                 modifier = Modifier.fillMaxSize(),
-                placeholder = { Text("Текст нотатки") }
+                placeholder = { Text(
+                    text = stringResource(R.string.note_text),
+                    style = Typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                ) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent
+                ),
+                textStyle = Typography.bodyMedium,
+                enabled = !deleted
             )
         }
     }

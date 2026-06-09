@@ -7,11 +7,17 @@ import androidx.navigation.compose.*
 import androidx.navigation.compose.rememberNavController
 import com.valerij.notepad.ui.theme.NotesViewModel
 import com.valerij.notepad.ui.theme.NotesViewModelFactory
+import com.valerij.notepad.ui.theme.Theme
+import com.valerij.notepad.ui.theme.screens.ChecklistScreen
 import com.valerij.notepad.ui.theme.screens.EditNoteScreen
 import com.valerij.notepad.ui.theme.screens.HomeScreen
+import com.valerij.notepad.ui.theme.screens.TrashBinScreen
 
 @Composable
-fun NotesApp() {
+fun NotesApp(
+    currentTheme: Theme,
+    onThemeChange: (Theme) -> Unit
+) {
     val navController = rememberNavController()
     val viewModel: NotesViewModel = viewModel(
         factory = NotesViewModelFactory(LocalContext.current)
@@ -22,12 +28,21 @@ fun NotesApp() {
         startDestination = "home"
     ) {
         composable("home") {
-            HomeScreen(navController, viewModel)
+            HomeScreen(navController, viewModel, currentTheme, onThemeChange)
         }
 
-        composable("edit?noteId={noteId}") { backStack ->
+        composable("trashBin") {
+            TrashBinScreen(navController, viewModel)
+        }
+
+        composable("editNoteScreen?noteId={noteId}") { backStack ->
             val noteId = backStack.arguments?.getString("noteId")
             EditNoteScreen(navController, viewModel, noteId)
+        }
+
+        composable("checklistScreen?noteId={noteId}") { backStack ->
+            val noteId = backStack.arguments?.getString("noteId")
+            ChecklistScreen(navController, viewModel, noteId)
         }
     }
 }
