@@ -1,5 +1,6 @@
 package com.valerij.notepad.ui.theme
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.valerij.notepad.data.local.NoteEntity
@@ -31,6 +32,14 @@ class NotesViewModel(
         emptyList()
     )
 
+    val deletedNotes = searchQuery.flatMapLatest {
+        repository.getDeletedNotes()
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    )
+
     fun updateSearch(query: String) {
         _searchQuery.value = query
     }
@@ -41,6 +50,16 @@ class NotesViewModel(
 
             repository.addOrUpdate(
                 current.copy(pinned = !current.pinned)
+            )
+        }
+    }
+
+    fun softDelete(noteId: String) {
+        viewModelScope.launch {
+            val current = repository.getById(noteId) ?: return@launch
+
+            repository.addOrUpdate(
+                current.copy(deleted = !current.deleted)
             )
         }
     }

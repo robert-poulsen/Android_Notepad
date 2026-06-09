@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Notepad</string>
+    <string name="app_name">Happy Notepad</string>
     <string name="selected_count">%1$d selected</string>
     <string name="completed_count">Completed</string>
     <string name="search">Search</string>
@@ -19,7 +19,7 @@
     <string name="delete_alert_title">Delete notes?</string>
     <string name="delete_alert_title_one">Delete the note?</string>
     <string name="delete_alert_text">Are you sure you want to delete selected notes?</string>
-    <string name="delete_alert_text_one">Are you sure you want to delete selected note?</string>
+    <string name="delete_alert_text_one">Are you sure you want to delete this note?</string>
     <string name="delete_submit">Yes</string>
     <string name="delete_cancel">No</string>
     <string name="note_title">Title</string>
@@ -30,4 +30,10 @@
     <string name="button_pin">Pin</string>
     <string name="button_unpin">Unpin</string>
     <string name="button_new_task">Add task</string>
+    <string name="empty_all_trash">Empty trash bin</string>
+    <string name="restore_note">Restore</string>
+    <string name="delete_forever_note">Delete forever</string>
+    <string name="note_restored">Note restored</string>
+    <string name="trash_bin_delete_title">Empty trash bin?</string>
+    <string name="trash_bin_delete_text">Are you sure you want to delete all notes in trash bin?</string>
 </resources>

@@ -9,6 +9,7 @@ data class NoteEntity(
     val title: String,
     val content: String,
     val checklist: Boolean,
+    val deleted: Boolean = false,
     val pinned: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

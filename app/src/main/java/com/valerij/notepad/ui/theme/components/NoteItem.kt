@@ -121,7 +121,7 @@ fun NoteItem(
                 ).format(Date(note.createdAt)),
 
                 style = Typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = MaterialTheme.colorScheme.primaryContainer
             )
         }
     }

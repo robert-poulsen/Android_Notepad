@@ -106,11 +106,9 @@ fun HomeScreen(
                 })
 
                 NotesViewModel.SortType.DATE_ASC -> list.sortedBy { it.createdAt }
-
                 NotesViewModel.SortType.DATE_DESC -> list.sortedByDescending { it.createdAt }
             }
         }
-
         sortList(pinned) + sortList(others)
     }
 
@@ -141,7 +139,7 @@ fun HomeScreen(
                             selectionMode = false
                             selectedNotes.clear()
                         }) {
-                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.size(30.dp))
+                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(30.dp))
                         }
                     },
                     actions = {
@@ -152,13 +150,13 @@ fun HomeScreen(
                             selectedNotes.clear()
                             selectionMode = false
                         }) {
-                            Icon(Icons.Default.PushPin, null, tint = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.size(30.dp))
+                            Icon(Icons.Default.PushPin, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(30.dp))
                         }
 
                         IconButton(onClick = {
                             showDeleteDialog = true
                         }) {
-                            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.size(30.dp))
+                            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(30.dp))
                         }
                     }
                 )
@@ -271,14 +269,14 @@ fun HomeScreen(
                             Text(
                                 text = stringResource(R.string.search),
                                 style = Typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.primaryContainer
                             )},
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Search,
                                 null,
                                 Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )},
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.background,
@@ -298,7 +296,7 @@ fun HomeScreen(
                                 Icons.Default.MoreVert,
                                 contentDescription = null,
                                 modifier = Modifier.size(30.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
 
@@ -330,6 +328,7 @@ fun HomeScreen(
                                     style = Typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimary )},
                                 onClick = {
+                                    navController.navigate("trashBin")
                                     menuExpanded = false
                                 }
                             )
@@ -391,7 +390,6 @@ fun HomeScreen(
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodyMedium)
                             }
-
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -415,7 +413,6 @@ fun HomeScreen(
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodyMedium)
                             }
-
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -439,7 +436,6 @@ fun HomeScreen(
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = Typography.bodyMedium)
                             }
-
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -465,7 +461,6 @@ fun HomeScreen(
                             }
                         }
                     },
-
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -489,13 +484,12 @@ fun HomeScreen(
                             }
                         ) {
                             Text(text = stringResource(R.string.cancel),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.primaryContainer,
                                 style = Typography.bodySmall)
                         }
                     }
                 )
             }
-
             if (showAppearanceDialog) {
                 AlertDialog(
                     shape = RoundedCornerShape(30.dp),
@@ -509,6 +503,30 @@ fun HomeScreen(
                         textAlign = TextAlign.Center)},
                     text = {
                         Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        tempTheme = Theme.SYSTEM
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
+                                        unselectedColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                    selected = tempTheme == Theme.SYSTEM,
+                                    onClick = {
+                                        tempTheme = Theme.SYSTEM
+                                    }
+                                )
+                                Text(
+                                    text = stringResource(R.string.select_theme_system),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = Typography.bodyMedium
+                                )
+                            }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -557,30 +575,6 @@ fun HomeScreen(
                                     style = Typography.bodyMedium
                                 )
                             }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        tempTheme = Theme.SYSTEM
-                                    },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    colors = RadioButtonDefaults.colors(
-                                        selectedColor = MaterialTheme.colorScheme.onTertiary,
-                                        unselectedColor = MaterialTheme.colorScheme.tertiary
-                                    ),
-                                    selected = tempTheme == Theme.SYSTEM,
-                                    onClick = {
-                                        tempTheme = Theme.SYSTEM
-                                    }
-                                )
-                                Text(
-                                    text = stringResource(R.string.select_theme_system),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    style = Typography.bodyMedium
-                                )
-                            }
                         }
                     },
                     confirmButton = {
@@ -596,7 +590,6 @@ fun HomeScreen(
                                 style = Typography.bodySmall)
                         }
                     },
-
                     dismissButton = {
                         TextButton(
                             onClick = {
@@ -605,13 +598,12 @@ fun HomeScreen(
                             }
                         ) {
                             Text(text = stringResource(R.string.cancel),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.primaryContainer,
                                 style = Typography.bodySmall)
                         }
                     }
                 )
             }
-
             if (showDeleteDialog && selectedNotes.isNotEmpty()) {
                 AlertDialog(
                     shape = RoundedCornerShape(30.dp),
@@ -630,7 +622,9 @@ fun HomeScreen(
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                viewModel.deleteNotes(selectedNotes.toList())
+                                selectedNotes.toList().forEach {  noteId ->
+                                    viewModel.softDelete(noteId)
+                                }
                                 selectedNotes.clear()
                                 selectionMode = false
                                 showDeleteDialog = false
@@ -644,7 +638,7 @@ fun HomeScreen(
                         TextButton(onClick = { showDeleteDialog = false }) {
                             Text(
                                 text = stringResource(R.string.delete_cancel),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.primaryContainer,
                                 style = Typography.bodySmall)
                         }
                     }
@@ -669,7 +663,7 @@ fun HomeScreen(
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                viewModel.deleteNote(note)
+                                viewModel.softDelete(note.id)
                                 noteToDelete = null
                             }
                         ) { Text(
@@ -681,7 +675,7 @@ fun HomeScreen(
                         TextButton(onClick = { noteToDelete = null }) {
                             Text(
                                 text = stringResource(R.string.delete_cancel),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.primaryContainer,
                                 style = Typography.bodySmall)
                         }
                     }
@@ -716,10 +710,7 @@ fun HomeScreen(
                                 else -> false
                             }
                         }
-
-
                     )
-
 
                     val isSelected = selectedNotes.contains(note.id)
 
@@ -750,7 +741,6 @@ fun HomeScreen(
                             onPinClick = { viewModel.togglePin(note.id) }
                         )
                     }
-
                     if (!selectionMode) {
                         key(note.id) {
                             SwipeToDismissBox(
@@ -776,7 +766,6 @@ fun HomeScreen(
                     } else {
                         content()
                     }
-
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }

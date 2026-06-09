@@ -8,6 +8,8 @@ class NotesRepository(
 ) {
     fun getAllNotes(query: String) = dao.getAllNotes(query)
 
+    fun getDeletedNotes() = dao.getDeletedNotes()
+
     suspend fun addOrUpdate(note: NoteEntity) {
         dao.insert(note)
     }

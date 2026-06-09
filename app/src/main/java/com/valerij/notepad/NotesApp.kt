@@ -11,6 +11,7 @@ import com.valerij.notepad.ui.theme.Theme
 import com.valerij.notepad.ui.theme.screens.ChecklistScreen
 import com.valerij.notepad.ui.theme.screens.EditNoteScreen
 import com.valerij.notepad.ui.theme.screens.HomeScreen
+import com.valerij.notepad.ui.theme.screens.TrashBinScreen
 
 @Composable
 fun NotesApp(
@@ -28,6 +29,10 @@ fun NotesApp(
     ) {
         composable("home") {
             HomeScreen(navController, viewModel, currentTheme, onThemeChange)
+        }
+
+        composable("trashBin") {
+            TrashBinScreen(navController, viewModel)
         }
 
         composable("editNoteScreen?noteId={noteId}") { backStack ->

@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
                     Theme.LIGHT -> false
                     Theme.SYSTEM -> isSystemInDarkTheme()
                 },
-                dynamicColor = currentTheme == Theme.SYSTEM
+//                dynamicColor = currentTheme == Theme.SYSTEM
             ){
                 NotesApp(
                     currentTheme = currentTheme,
