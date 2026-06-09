@@ -1,5 +1,6 @@
 package com.valerij.notepad.ui.theme.screens
 
+import com.valerij.notepad.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,6 +52,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -94,6 +96,8 @@ fun ChecklistScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
     var pinned by remember { mutableStateOf(false) }
+    var deleted by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
     val reorderableLazyListState =
         rememberReorderableLazyListState(
             lazyListState = listState,
@@ -176,6 +180,7 @@ fun ChecklistScreen(
                     ?: "No title"
             },
             content = content,
+            deleted = deleted,
             pinned = pinned,
             checklist = true
         )
@@ -230,6 +235,8 @@ fun ChecklistScreen(
                     title = note.title
 
                     pinned = note.pinned
+
+                    deleted = note.deleted
 
                     items.clear()
 
@@ -290,8 +297,27 @@ fun ChecklistScreen(
     }
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier
+                        .padding(bottom = 450.dp)
+                        .size(width = 300.dp, height = 80.dp)
+                        .statusBarsPadding(),
+                    shape = RoundedCornerShape(80.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Text(
+                        text = stringResource(R.string.note_restored),
+                        style = Typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        },
         topBar = {
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -315,7 +341,7 @@ fun ChecklistScreen(
                     Icon(
                         Icons.Default.ArrowBack,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiaryContainer,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -328,19 +354,22 @@ fun ChecklistScreen(
                     modifier = Modifier.weight(1f),
                     placeholder = {
                         Text(
-                            text = "Title",
+                            text = stringResource(R.string.note_title),
                             style = Typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = MaterialTheme.colorScheme.primaryContainer,
                             lineHeight = 45.sp
                         )},
                     textStyle = MaterialTheme.typography.bodyLarge,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.background,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.background,
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.background
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
                     ),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !deleted
                 )
 
                 Box {
@@ -353,95 +382,148 @@ fun ChecklistScreen(
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiaryContainer,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(30.dp)
                         )
                     }
 
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.size(width = 125.dp, height = 246.dp),
-                        shape = RoundedCornerShape(22.dp),
-                        onDismissRequest = {
-                            menuExpanded = false
-                        }
-                    ) {
-
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "Add task",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    style = Typography.bodySmall)
-                            },
-                            onClick = {
-                                addTask()
+                    if(!deleted) {
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(width = 155.dp, height = 246.dp),
+                            shape = RoundedCornerShape(22.dp),
+                            onDismissRequest = {
                                 menuExpanded = false
                             }
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "Delete",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    style = Typography.bodySmall)
-                            },
-                            onClick = {
+                        ) {
 
-                                menuExpanded = false
-
-                                showDeleteDialog = true
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = if (pinned)
-                                        "Unpin"
-                                    else
-                                        "Pin",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    style = Typography.bodySmall
-                                )
-                            },
-                            onClick = {
-
-                                pinned = !pinned
-
-                                scope.launch {
-
-                                    viewModel.togglePin(
-                                        buildNote().id
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.button_new_task),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
                                     )
+                                },
+                                onClick = {
+                                    addTask()
+                                    menuExpanded = false
                                 }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.button_delete),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
 
+                                    menuExpanded = false
+
+                                    showDeleteDialog = true
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = if (pinned)
+                                            stringResource(R.string.button_unpin)
+                                        else
+                                            stringResource(R.string.button_pin),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+
+                                    pinned = !pinned
+
+                                    scope.launch {
+
+                                        viewModel.togglePin(
+                                            buildNote().id
+                                        )
+                                    }
+
+                                    menuExpanded = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.button_save),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+                                    isLeavingScreen = true
+                                    saveAndExit()
+
+                                    menuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                    if(deleted){
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(width = 155.dp, height = 126.dp),
+                            shape = RoundedCornerShape(22.dp),
+                            onDismissRequest = {
                                 menuExpanded = false
                             }
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "Save",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    style = Typography.bodySmall)
-                            },
-                            onClick = {
-                                isLeavingScreen = true
-                                saveAndExit()
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.delete_forever_note),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    showDeleteDialog = true
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primaryContainer)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.restore_note),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = Typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+                                    deleted = false
+                                    menuExpanded = false
 
-                                menuExpanded = false
-                            }
-                        )
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -453,13 +535,13 @@ fun ChecklistScreen(
                         showDeleteDialog = false
                     },
                     title = { Text(
-                        text = "Delete notes?",
+                        text = stringResource(R.string.delete_alert_title_one),
                         color = MaterialTheme.colorScheme.primary,
                         style = Typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center)},
                     text = { Text(
-                        text = "Are you sure you want to delete selected notes?",
+                        text = stringResource(R.string.delete_alert_text_one),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = Typography.bodyMedium)},
                     confirmButton = {
@@ -467,10 +549,9 @@ fun ChecklistScreen(
                             onClick = {
                                 if (noteId == null){
                                     isLeavingScreen = true
-
                                     showDeleteDialog = false
                                     navController.popBackStack()
-                                } else {
+                                } else if(deleted){
                                     isLeavingScreen = true
 
                                     scope.launch {
@@ -480,11 +561,16 @@ fun ChecklistScreen(
                                         showDeleteDialog = false
                                         navController.popBackStack()
                                     }
+                                } else {
+                                    isLeavingScreen = true
+                                    deleted = true
+                                    showDeleteDialog = false
+                                    saveAndExit()
                                 }
                             }
                         ) {
                             Text(
-                                text = "Yes",
+                                text = stringResource(R.string.delete_submit),
                                 color = MaterialTheme.colorScheme.onTertiary,
                                 style = Typography.bodySmall)
                         }
@@ -496,8 +582,8 @@ fun ChecklistScreen(
                             }
                         ) {
                             Text(
-                                text = "No",
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                text = stringResource(R.string.delete_cancel),
+                                color = MaterialTheme.colorScheme.primaryContainer,
                                 style = Typography.bodySmall)
                         }
                     }
@@ -523,7 +609,7 @@ fun ChecklistScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    color = MaterialTheme.colorScheme.onTertiary,
+                    color = MaterialTheme.colorScheme.tertiary,
                     trackColor = MaterialTheme.colorScheme.primaryContainer,
                     gapSize = 0.dp,
                     drawStopIndicator = {}
@@ -553,6 +639,7 @@ fun ChecklistScreen(
                             focusItemId = null
                         },
                         listState = listState,
+                        deleted = deleted,
                         modifier = Modifier
                             .animateItem()
                             .clip(RoundedCornerShape(16.dp))
@@ -563,7 +650,7 @@ fun ChecklistScreen(
                                     else
                                         0.dp
                             )
-                            .background(MaterialTheme.colorScheme.background)
+                            .background(Color.Transparent)
                     )
                 }
                 Spacer(
@@ -588,9 +675,9 @@ fun ChecklistScreen(
                     ) {
 
                         Text(
-                            text = "Completed (${completedItems.size})",
+                            text = "${stringResource(R.string.completed_count)} (${completedItems.size})",
                             modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = MaterialTheme.colorScheme.primaryContainer,
                             style = Typography.bodyLarge
                         )
                         Icon(
@@ -630,6 +717,7 @@ fun ChecklistScreen(
                                     focusItemId = null
                                 },
                                 listState = listState,
+                                deleted = deleted,
                                 modifier = Modifier
                                     .animateItem()
                                     .clip(RoundedCornerShape(16.dp))
@@ -640,7 +728,7 @@ fun ChecklistScreen(
                                             else
                                                 0.dp
                                     )
-                                    .background(MaterialTheme.colorScheme.background)
+                                    .background(Color.Transparent)
                             )
                         }
                         Spacer(
@@ -663,7 +751,8 @@ fun ChecklistRow(
     onFocusConsumed: () -> Unit,
     focusManager: FocusManager,
     dragHandleModifier: Modifier = Modifier,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    deleted: Boolean
 ) {
 
     val focusRequester = remember { FocusRequester() }
@@ -694,13 +783,15 @@ fun ChecklistRow(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            Icons.Default.DragIndicator,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.tertiaryContainer,
-            modifier = dragHandleModifier
-                .padding(8.dp)
-        )
+        if(!deleted) {
+            Icon(
+                Icons.Default.DragIndicator,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = dragHandleModifier
+                    .padding(8.dp)
+            )
+        }
 
         Checkbox(
             checked = item.checked,
@@ -717,6 +808,7 @@ fun ChecklistRow(
                 checkedColor = MaterialTheme.colorScheme.onTertiary,
                 uncheckedColor = MaterialTheme.colorScheme.onTertiary,
                 checkmarkColor = MaterialTheme.colorScheme.tertiary),
+            enabled = !deleted
         )
 
         TextField(
@@ -800,8 +892,8 @@ fun ChecklistRow(
 
             placeholder = {
                 Text(
-                    text = "Task",
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    text = stringResource(R.string.note_task),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     style = Typography.bodyMedium)
             },
 
@@ -809,7 +901,9 @@ fun ChecklistRow(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
             ),
 
             textStyle = LocalTextStyle.current.copy(
@@ -822,11 +916,14 @@ fun ChecklistRow(
                 color =
                     if (item.checked)
                         MaterialTheme.colorScheme.primaryContainer
+                    else if(deleted)
+                        MaterialTheme.colorScheme.primaryContainer
                     else
-                        LocalContentColor.current),
+                        MaterialTheme.colorScheme.primary),
 
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            enabled = !deleted
         )
 
         IconButton(
@@ -846,13 +943,14 @@ fun ChecklistRow(
                     }
                 }
 
-            }
+            },
+            enabled = !deleted
         ) {
 
             Icon(
                 Icons.Default.Close,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiaryContainer
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
     }

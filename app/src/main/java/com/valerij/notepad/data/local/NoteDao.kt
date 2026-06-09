@@ -8,11 +8,16 @@ interface NoteDao {
 
     @Query("""
         SELECT * FROM NoteEntity
-        WHERE title LIKE '%' || :query || '%' 
-           OR content LIKE '%' || :query || '%'
+        WHERE deleted = 0
+            AND ( title LIKE '%' || :query || '%' 
+            OR content LIKE '%' || :query || '%'
+            )
         ORDER BY pinned DESC, createdAt DESC
     """)
     fun getAllNotes(query: String): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM NoteEntity WHERE deleted = 1 ORDER BY createdAt DESC")
+    fun getDeletedNotes(): Flow<List<NoteEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(notes: NoteEntity)
